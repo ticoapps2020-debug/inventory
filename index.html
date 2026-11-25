@@ -9,7 +9,120 @@
 <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css">
 <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.css">
 <script src="https://cdn.jsdelivr.net/npm/html5-qrcode@2.3.8/html5-qrcode.min.js"></script>
-<link rel="stylesheet" href="css/styles.css">
+<style>
+/* PALETA NEUTRA (pizarra y azul acero): la misma para todos los modos.
+   El modo se distingue por la etiqueta de la barra, no por el color. */
+body{
+  --accent:#334155;        /* barra, botón principal, bordes de acento */
+  --accent-2:#475569;      /* hover del botón principal */
+  --accent-soft:#F1F5F9;   /* fondos suaves y toque de lista */
+  --icon:#3B6FB6;          /* acento: iconos, foco, botón secundario */
+  --btn-alt:#3B6FB6;
+  --line:#E2E8F0;          /* bordes */
+  background:#F1F5F9; color:#0F172A;
+  padding-bottom:40px; -webkit-tap-highlight-color: transparent;
+}
+
+.navbar-app{ background:var(--accent); box-shadow:0 2px 8px rgba(15,23,42,.18); }
+.navbar-brand{font-weight:700;}
+#badgeModo{ background:rgba(255,255,255,.18); color:#fff; font-weight:600; font-size:.85rem; padding:7px 12px; border-radius:20px; }
+
+.card{ border:1px solid var(--line); border-top:4px solid var(--accent); border-radius:16px; box-shadow:0 1px 4px rgba(15,23,42,.08); }
+.form-label i{ color:var(--icon); margin-right:2px; }
+.texto-acento{ color:var(--accent); }
+
+.btn-primary, .btn-primary:active, .btn-primary:focus{
+  background:var(--accent) !important;
+  border:none !important; color:#fff !important;
+  box-shadow:0 2px 6px rgba(15,23,42,.2);
+}
+.btn-primary:hover{ background:var(--accent-2) !important; border:none !important; color:#fff !important; }
+.btn-secondary, .btn-secondary:hover{ background:var(--btn-alt) !important; border:none !important; color:#fff !important; box-shadow:0 4px 10px rgba(0,0,0,.15); }
+.btn-outline-secondary{ color:var(--accent); border-color:var(--accent); }
+.btn-outline-secondary:hover{ background:var(--accent); border-color:var(--accent); color:#fff; }
+
+.form-control:focus, .form-select:focus{ border-color:var(--icon); box-shadow:0 0 0 .22rem rgba(59,111,182,.2); }
+.spinner-border{ color:var(--icon) !important; }
+.btn-grande{ width:100%; padding:16px; font-size:1.05rem; font-weight:600; border-radius:14px; }
+.form-control, .form-select{ padding:12px; font-size:1rem; border-radius:10px; }
+label.form-label{ font-weight:600; color:#1E293B; }
+#reader{ display:none; }
+#preview-foto{ width:100%; max-height:260px; object-fit:cover; border-radius:12px; display:none; margin-top:10px; }
+#preview-codigo-foto{ width:100%; max-height:180px; object-fit:cover; border-radius:12px; display:none; margin-top:10px; }
+.preview-amp{ width:100%; max-height:220px; object-fit:cover; border-radius:12px; display:none; margin-top:10px; }
+.campo-oculto{display:none !important;}
+#overlay-loading{ position:fixed; inset:0; background:rgba(255,255,255,.85); display:none; align-items:center; justify-content:center; flex-direction:column; z-index:2000; }
+.toast-custom{ position:fixed; top:16px; left:50%; transform:translateX(-50%); z-index:3000; min-width:80%; display:none; }
+
+/* Historial */
+.evento-card{ border:1px solid #e2e2e2; border-left:5px solid #94a3b8; border-radius:10px; padding:10px 12px; margin-bottom:8px; background:#fff; }
+.evento-card.ev-entrada{ border-left-color:#16a34a; background:#f0fdf4; }
+.evento-card.ev-salida{ border-left-color:#2563eb; background:#eff6ff; }
+.evento-card.ev-mant{ border-left-color:#d97706; background:#fffbeb; }
+
+/* Pantalla de login */
+#pantallaLogin, #pantallaSetup{ min-height:100vh; display:flex; align-items:center; justify-content:center; padding:16px; }
+#pantallaLogin .card, #pantallaSetup .card{ width:100%; max-width:400px; }
+
+/* Lista de inventario filtrado (Consultar) y de alertas */
+.separador-o{ display:flex; align-items:center; gap:10px; color:#94a3b8; font-size:.85rem; margin:2px 0 14px; }
+.separador-o::before, .separador-o::after{ content:""; flex:1; height:1px; background:#e2e8f0; }
+.item-inv{ display:flex; gap:10px; align-items:center; border:1px solid #e2e2e2; border-left:5px solid var(--accent); border-radius:10px; padding:10px 12px; margin-bottom:8px; background:#fff; cursor:pointer; }
+.item-inv:active{ background:var(--accent-soft); }
+.item-inv .item-info{ flex:1; min-width:0; word-break:break-word; }
+.item-inv img{ width:64px; height:64px; object-fit:cover; border-radius:8px; border:1px solid #ddd; flex-shrink:0; }
+.item-inv.al-vencido{ border-left-color:#dc2626; }
+.item-inv.al-proximo{ border-left-color:#f59e0b; }
+.item-inv.al-sinbase{ border-left-color:#94a3b8; }
+.chip-resumen{ display:inline-block; background:var(--line); color:#1E293B; border-radius:20px; padding:4px 12px; margin:0 6px 6px 0; font-size:.85rem; }
+
+/* =========================================================
+   MÓVIL (teléfonos): solo aplica en pantallas de hasta 576px.
+   La vista de PC no se modifica.
+   ========================================================= */
+@media (max-width: 576px){
+  body{ padding-bottom:90px; }
+  .container{ padding-left:10px; padding-right:10px; }
+
+  /* Barra superior compacta */
+  .navbar-app .container-fluid{ flex-wrap:nowrap; gap:8px; }
+  .navbar-brand{ font-size:1rem; margin-right:0; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+  #badgeModo{ font-size:.78rem; padding:6px 10px; white-space:nowrap; }
+
+  /* Tarjetas más compactas */
+  .card{ border-radius:14px; }
+  .card.p-3{ padding:14px !important; margin-bottom:12px !important; }
+
+  /* Campos grandes y cómodos para el dedo.
+     16px evita que el navegador haga zoom automático al tocar un campo. */
+  .form-control, .form-select{ font-size:16px; min-height:50px; padding:12px 14px; }
+  label.form-label{ font-size:.95rem; margin-bottom:6px; }
+  .form-text{ font-size:.8rem; }
+
+  .input-group .btn{ min-width:64px; font-size:1.35rem; }
+  .btn-grande{ padding:16px; font-size:1.08rem; }
+
+  /* Guardar / Buscar siempre a la mano, pegado abajo mientras se hace scroll */
+  #btnGuardar, #btnBuscar{
+    position:sticky; bottom:12px; z-index:50;
+    box-shadow:0 6px 18px rgba(0,0,0,.30);
+  }
+
+  .btn-outline-secondary.btn-sm{ width:100%; padding:12px; font-size:.95rem; }
+
+  #preview-foto{ max-height:220px; }
+  #preview-codigo-foto{ max-height:150px; }
+
+  .toast-custom{ min-width:0; width:94%; top:10px; font-size:.95rem; }
+
+  .evento-card{ padding:10px; font-size:.95rem; }
+  .evento-card img{ max-width:100px !important; max-height:100px !important; }
+}
+
+/* Menú de administración y modales */
+#menuAdmin .dropdown-item{ padding:10px 16px; }
+.modal-body .form-label.small{ color:#475569; }
+</style>
 </head>
 <body>
 
@@ -333,8 +446,1889 @@
 <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
 <!-- Conexión con Apps Script: edita config.js -->
 <script src="config.js"></script>
-<script src="js/rules.js"></script>
-<script src="js/api.js"></script>
-<script src="js/app.js"></script>
+<script>
+/**
+ * rules.js - Reglas de negocio PURAS (sin pantalla ni almacenamiento).
+ * Se usan tanto en la app como en las pruebas.
+ *
+ *  - Formato de campos numéricos sin tecla de punto (iPhone)
+ *  - Matriz de evaluación de baterías (Ohmios + Amperios)
+ *  - Cálculo de mantenimiento (próximo, vencido, sin base)
+ *  - Condiciones de alerta del Gabinete
+ *  - Fechas y configuración de artículos
+ */
+(function (raiz) {
+  'use strict';
+
+  const AVISO_POR_DEFECTO = 15;                       // días de aviso si no se indica
+  const SIN_ALERTA_POR_DEFECTO = ['basura', 'bodega']; // ubicaciones donde no se alerta
+  const TEMPERATURA_MAX_GABINETE = 40;                 // °C: por encima, alerta de revisión
+  const DIA_MS = 86400000;
+
+  // Campos extra que puede pedir un artículo (columna "Campos extra" de la configuración)
+  const CAMPOS_MEDICION = ['voltios', 'amperios', 'ohmios'];             // Entrada y Mantenimiento
+  const CAMPOS_MANTENIMIENTO = ['temperatura', 'estadofisico', 'limpieza']; // solo Mantenimiento
+
+  const CONFIG_INICIAL = [
+    { articulo: 'Bateria',  dias: 90,  aviso: 15, campos: 'Voltios, Amperios, Ohmios',             sinAlerta: 'Basura, Bodega' },
+    { articulo: 'CPU',      dias: 180, aviso: 15, campos: '',                                       sinAlerta: 'Basura, Bodega' },
+    { articulo: 'Gabinete', dias: 90,  aviso: 15, campos: 'Estado físico, Limpieza, Temperatura',   sinAlerta: 'Basura, Bodega' }
+  ];
+
+  // ------------------------------------------------------------------
+  // Texto
+  // ------------------------------------------------------------------
+  /** Minúsculas, sin acentos y sin espacios repetidos: "Batería " -> "bateria" */
+  function normalizar(t) {
+    return String(t === undefined || t === null ? '' : t)
+      .trim().replace(/\s+/g, ' ').toLowerCase()
+      .normalize('NFD').replace(/[\u0300-\u036f]/g, '');
+  }
+  /** Igual que normalizar pero sin espacios: "Estado físico" -> "estadofisico" */
+  function clave(t) { return normalizar(t).replace(/\s+/g, ''); }
+
+  // ------------------------------------------------------------------
+  // Números
+  // ------------------------------------------------------------------
+  function numero(v) {
+    if (v === undefined || v === null || String(v).trim() === '') return null;
+    const n = Number(String(v).replace(',', '.'));
+    return isNaN(n) ? null : n;
+  }
+  function numeroOVacio(v) { const n = numero(v); return n === null ? '' : n; }
+
+  // ------------------------------------------------------------------
+  // Fechas (se guardan como texto ISO; se leen también dd/MM/yyyy de Sheets)
+  // ------------------------------------------------------------------
+  function aMs(v) {
+    if (!v) return 0;
+    if (v instanceof Date) return isNaN(v.getTime()) ? 0 : v.getTime();
+    if (typeof v === 'number') return v;
+    const s = String(v).trim();
+    let m = s.match(/^(\d{1,2})\/(\d{1,2})\/(\d{4})(?:[ T](\d{1,2}):(\d{1,2})(?::(\d{1,2}))?)?/);
+    if (m) return new Date(+m[3], +m[2] - 1, +m[1], +(m[4] || 0), +(m[5] || 0), +(m[6] || 0)).getTime();
+    m = s.match(/^(\d{4})-(\d{1,2})-(\d{1,2})$/);
+    if (m) return new Date(+m[1], +m[2] - 1, +m[3]).getTime();
+    const t = Date.parse(s);
+    return isNaN(t) ? 0 : t;
+  }
+  function dos(n) { return String(n).padStart(2, '0'); }
+  function formatoDia(ms) {
+    if (!ms) return '';
+    const d = new Date(ms);
+    return dos(d.getDate()) + '/' + dos(d.getMonth() + 1) + '/' + d.getFullYear();
+  }
+  function formatoFecha(ms) {
+    if (!ms) return '(fecha desconocida)';
+    const d = new Date(ms);
+    return formatoDia(ms) + ' ' + dos(d.getHours()) + ':' + dos(d.getMinutes()) + ':' + dos(d.getSeconds());
+  }
+  function isoDia(ms) {
+    const d = new Date(ms);
+    return d.getFullYear() + '-' + dos(d.getMonth() + 1) + '-' + dos(d.getDate());
+  }
+
+  // ------------------------------------------------------------------
+  // Formato de campos numéricos SIN tecla de punto (iPhone)
+  // ------------------------------------------------------------------
+  /**
+   * Voltios (2 enteros) y Amperios (3 enteros): se escriben solo dígitos y el
+   * punto se pone solo. 125 -> 12.5 (V) | 1105 -> 110.5 (Ah). Si el usuario
+   * escribe punto o coma, se respeta (mismo máximo de enteros, 2 decimales).
+   */
+  function formatearAutoDecimal(valor, enteros) {
+    enteros = enteros || 2;
+    const v = String(valor || '').replace(',', '.');
+    if (v.indexOf('.') !== -1) {
+      const partes = v.split('.');
+      const ent = partes[0].replace(/\D/g, '').slice(0, enteros);
+      const dec = partes.slice(1).join('').replace(/\D/g, '').slice(0, 2);
+      if (ent === '' && dec === '') return '';
+      return ent + '.' + dec;
+    }
+    const d = v.replace(/\D/g, '').slice(0, enteros + 2);
+    return d.length > enteros ? d.slice(0, enteros) + '.' + d.slice(enteros) : d;
+  }
+
+  /**
+   * Ohmios: hasta 10 se aceptan valores de UN dígito con decimales
+   * (3, 3.8, 5.5, 9.7 ...). Desde 10 en adelante SOLO enteros (10, 11, 12 ...).
+   * Los dígitos se toman tal cual (no se inserta punto solo, porque 38 puede
+   * ser 38 Ω): el decimal se escribe con punto/coma o con el botón "." junto
+   * al campo.
+   */
+  function formatearOhmios(valor) {
+    const v = String(valor || '').replace(',', '.');
+    const quitarCeros = (t) => t.replace(/^0+(?=\d)/, '');
+    if (v.indexOf('.') !== -1) {
+      const partes = v.split('.');
+      const ent = quitarCeros(partes[0].replace(/\D/g, '').slice(0, 3));
+      const dec = partes.slice(1).join('').replace(/\D/g, '').slice(0, 2);
+      if (ent === '' && dec === '') return '';
+      // 10 o más: sin decimales. Si ya escribió el punto se conserva ("10.") para que el
+      // siguiente dígito se descarte en vez de pegarse como "105".
+      if (ent.length >= 2) return dec === '' ? ent + '.' : ent;
+      return ent + '.' + dec;                 // 1 dígito + decimales
+    }
+    return quitarCeros(v.replace(/\D/g, '').slice(0, 3));
+  }
+
+  /** ¿El valor de Ohmios cumple la regla? (>10 solo enteros). */
+  function ohmiosValido(valor) {
+    const n = numero(valor);
+    if (n === null) return true;
+    if (n < 0) return false;
+    if (n > 10 && !Number.isInteger(n)) return false;
+    return true;
+  }
+
+  // ------------------------------------------------------------------
+  // Baterías: matriz de evaluación por Ohmios (Ω) y Amperaje (Ah)
+  // ------------------------------------------------------------------
+  /**
+   * Cada medición cae en una banda:
+   *   Ohmios : A = hasta 5 (incluye 3-5 y valores menores, que son mejores)
+   *            B = más de 5 y hasta 6
+   *            C = más de 6
+   *   Ah     : A = 80 o más (80-110 y valores mayores)
+   *            B = de 60 hasta menos de 80
+   *            C = menos de 60
+   * Resultado (siempre la banda MÁS DESFAVORABLE, criterio conservador):
+   *   alguna C                       -> crítico: "Tiempo de reemplazo"
+   *   ambas A                        -> óptimo: 5 horas de respaldo
+   *   cualquier otra combinación     -> medio : 2 horas de respaldo
+   *   falta una medición y la otra no es C -> incompleto (sin alerta)
+   */
+  function evaluarBateria(ohm, amp) {
+    const o = numero(ohm), a = numero(amp);
+    const base = { ohmios: o, amperios: a };
+    if (o === null && a === null) return Object.assign(base, { estado: 'sinDatos', horas: 0, etiqueta: 'Sin mediciones', mensaje: '' });
+
+    const bandaO = o === null ? null : (o <= 5 ? 'A' : (o <= 6 ? 'B' : 'C'));
+    const bandaA = a === null ? null : (a >= 80 ? 'A' : (a >= 60 ? 'B' : 'C'));
+
+    if (bandaO === 'C' || bandaA === 'C') {
+      return Object.assign(base, { estado: 'critico', horas: 0, etiqueta: 'Deteriorada', mensaje: 'Tiempo de reemplazo' });
+    }
+    if (bandaO === null || bandaA === null) {
+      return Object.assign(base, { estado: 'incompleto', horas: 0, etiqueta: 'Incompleta', mensaje: 'Falta medir ' + (o === null ? 'Ohmios (Ω)' : 'Amperios (Ah)') });
+    }
+    if (bandaO === 'A' && bandaA === 'A') {
+      return Object.assign(base, { estado: 'optimo', horas: 5, etiqueta: 'Óptima', mensaje: '5 horas de respaldo' });
+    }
+    return Object.assign(base, { estado: 'medio', horas: 2, etiqueta: 'Degradada', mensaje: '2 horas de respaldo' });
+  }
+
+  // ------------------------------------------------------------------
+  // Gabinete: condiciones que disparan alerta además de la fecha
+  // ------------------------------------------------------------------
+  /** m = último mantenimiento: { estadoFisico, limpieza, temperatura } */
+  function condicionesGabinete(m) {
+    const res = [];
+    if (!m) return res;
+    if (normalizar(m.estadoFisico) === 'malo') res.push({ nivel: 'rojo', texto: 'Estado físico malo' });
+    const t = numero(m.temperatura);
+    if (t !== null && t > TEMPERATURA_MAX_GABINETE) res.push({ nivel: 'rojo', texto: 'Temperatura alta (' + t + ' °C)' });
+    if (normalizar(m.limpieza) === 'no') res.push({ nivel: 'amarillo', texto: 'Limpieza pendiente' });
+    return res;
+  }
+
+  // ------------------------------------------------------------------
+  // Configuración de artículos
+  // ------------------------------------------------------------------
+  /** Filas "crudas" (texto) -> filas normalizadas listas para usar. */
+  function normalizarConfig(filas) {
+    return (filas || []).map(function (f) {
+      const articulo = String(f.articulo || '').trim();
+      if (!articulo) return null;
+
+      let dias = Number(f.dias);
+      if (isNaN(dias) || dias < 0) dias = 0;
+
+      let aviso = (f.aviso === '' || f.aviso === undefined || f.aviso === null) ? AVISO_POR_DEFECTO : Number(f.aviso);
+      if (isNaN(aviso) || aviso < 0) aviso = AVISO_POR_DEFECTO;
+
+      const campos = String(f.campos || '').split(',').map(clave).filter(Boolean);
+
+      const crudo = String(f.sinAlerta === undefined || f.sinAlerta === null ? '' : f.sinAlerta).trim();
+      const sinAlerta = crudo === ''
+        ? SIN_ALERTA_POR_DEFECTO.slice()
+        : crudo.split(',').map(normalizar).filter(function (x) { return x && x !== 'ninguna' && x !== 'ninguno'; });
+
+      return { articulo: articulo, dias: dias, aviso: aviso, campos: campos, sinAlerta: sinAlerta };
+    }).filter(Boolean);
+  }
+
+  /** ¿La ubicación actual está en la lista "sin alerta" (Basura, Bodega...)? */
+  function ubicacionSilenciada(cfg, ubicacion) {
+    const lista = cfg ? cfg.sinAlerta : SIN_ALERTA_POR_DEFECTO;
+    if (!lista || !lista.length) return false;
+    const u = normalizar(ubicacion);
+    for (let i = 0; i < lista.length; i++) {
+      if (lista[i] && u.indexOf(lista[i]) !== -1) return true;
+    }
+    return false;
+  }
+
+  /** Artículo con medición de batería (pide Ohmios y Amperios). */
+  function esBateria(cfg) {
+    return !!cfg && cfg.campos.indexOf('ohmios') !== -1 && cfg.campos.indexOf('amperios') !== -1;
+  }
+  /** Artículo que registra condiciones de mantenimiento (Gabinete). */
+  function tieneCondiciones(cfg) {
+    return !!cfg && CAMPOS_MANTENIMIENTO.some(function (c) { return cfg.campos.indexOf(c) !== -1; });
+  }
+
+  // ------------------------------------------------------------------
+  // Mantenimiento por fecha
+  // ------------------------------------------------------------------
+  /**
+   * @param {Object|null} cfg   config del artículo
+   * @param {number} ultimoMantMs  fecha del último mantenimiento (0 si no hay)
+   * @param {number} proximoMs     "próximo" guardado en el último mantenimiento (0 si no hay)
+   * @param {number} primeraEntradaMs fecha de la primera entrada (0 si se desconoce)
+   * @param {number} [ahoraMs]
+   * @return {{estado:'vencido'|'proximo'|'alDia'|'sinBase'|'noAplica', dias:number, proximaFecha:string}}
+   */
+  function evaluarMantenimiento(cfg, ultimoMantMs, proximoMs, primeraEntradaMs, ahoraMs) {
+    const aviso = cfg ? cfg.aviso : AVISO_POR_DEFECTO;
+    let dueMs = 0;
+
+    if (proximoMs > 0) {
+      dueMs = proximoMs;
+    } else if (cfg && cfg.dias > 0) {
+      const base = ultimoMantMs > 0 ? ultimoMantMs : primeraEntradaMs;
+      if (!(base > 0)) return { estado: 'sinBase', dias: 0, proximaFecha: '' };
+      const d = new Date(base);
+      d.setDate(d.getDate() + cfg.dias);
+      dueMs = d.getTime();
+    } else {
+      return { estado: 'noAplica', dias: 0, proximaFecha: '' };
+    }
+
+    const hoy = new Date(ahoraMs || Date.now());
+    hoy.setHours(0, 0, 0, 0);
+    const due = new Date(dueMs);
+    due.setHours(0, 0, 0, 0);
+    const dias = Math.round((due.getTime() - hoy.getTime()) / DIA_MS);
+    const estado = dias < 0 ? 'vencido' : (dias <= aviso ? 'proximo' : 'alDia');
+    return { estado: estado, dias: dias, proximaFecha: formatoDia(due.getTime()) };
+  }
+
+  /** Próximo mantenimiento automático = hoy + "cada (días)" de la configuración. */
+  function proximoAutomatico(cfg, ahoraMs) {
+    if (!cfg || !(cfg.dias > 0)) return '';
+    const d = new Date(ahoraMs || Date.now());
+    d.setHours(0, 0, 0, 0);
+    d.setDate(d.getDate() + cfg.dias);
+    return isoDia(d.getTime());
+  }
+
+  const Reglas = {
+    AVISO_POR_DEFECTO, SIN_ALERTA_POR_DEFECTO, TEMPERATURA_MAX_GABINETE,
+    CAMPOS_MEDICION, CAMPOS_MANTENIMIENTO, CONFIG_INICIAL,
+    normalizar, clave, numero, numeroOVacio,
+    aMs, formatoDia, formatoFecha, isoDia,
+    formatearAutoDecimal, formatearOhmios, ohmiosValido,
+    evaluarBateria, condicionesGabinete,
+    normalizarConfig, ubicacionSilenciada, esBateria, tieneCondiciones,
+    evaluarMantenimiento, proximoAutomatico
+  };
+
+  raiz.Reglas = Reglas;
+  if (typeof module !== 'undefined' && module.exports) module.exports = Reglas;
+})(typeof window !== 'undefined' ? window : globalThis);
+</script>
+<script>
+/**
+ * api.js - Conexión entre esta página (GitHub Pages) y Google Apps Script.
+ *
+ * La pantalla usa  API.nombreDeLaFuncion(args)  (devuelve una Promesa). Aquí cada
+ * llamada se envía por fetch a la Web App de Apps Script (Codigo.gs, función
+ * doPost), agregando el token de sesión que devuelve iniciarSesion.
+ *
+ * El cuerpo se manda como text/plain para que el navegador no haga "preflight"
+ * de CORS (Apps Script no responde a OPTIONS).
+ */
+(function () {
+  'use strict';
+
+  const TOKEN = 'inv:token', USUARIO = 'inv:usuario', ROL = 'inv:rol';
+  const TIEMPO_MAX_MS = 120000; // 2 min: las fotos pueden tardar en redes lentas
+
+  function guardarSesion(res) {
+    try {
+      sessionStorage.setItem(TOKEN, res.token);
+      sessionStorage.setItem(USUARIO, res.usuario || '');
+      sessionStorage.setItem(ROL, res.rol || 'editor');
+    } catch (e) {}
+  }
+  function borrarSesion() {
+    try { [TOKEN, USUARIO, ROL].forEach(function (k) { sessionStorage.removeItem(k); }); } catch (e) {}
+  }
+  function token() {
+    try { return sessionStorage.getItem(TOKEN) || ''; } catch (e) { return ''; }
+  }
+
+  async function llamarApi(metodo, args) {
+    const url = (window.APP_CONFIG && window.APP_CONFIG.API_URL) || '';
+    if (!url || url.indexOf('PEGA_AQUI') !== -1) {
+      throw new Error('Falta configurar API_URL en el archivo config.js.');
+    }
+
+    const control = new AbortController();
+    const temporizador = setTimeout(function () { control.abort(); }, TIEMPO_MAX_MS);
+
+    let resp;
+    try {
+      resp = await fetch(url, {
+        method: 'POST',
+        headers: { 'Content-Type': 'text/plain;charset=utf-8' },
+        body: JSON.stringify({ metodo: metodo, args: args }),
+        redirect: 'follow',
+        signal: control.signal
+      });
+    } catch (err) {
+      if (err && err.name === 'AbortError') throw new Error('El servidor tardó demasiado en responder. Intenta de nuevo.');
+      throw new Error('No hay conexión con el servidor. Revisa tu internet y la URL de config.js.');
+    } finally {
+      clearTimeout(temporizador);
+    }
+
+    let datos;
+    try { datos = await resp.json(); }
+    catch (err) {
+      throw new Error('El servidor no respondió con datos válidos. Verifica que la implementación de Apps Script tenga acceso para "Cualquier persona".');
+    }
+    if (!datos || datos.ok !== true) throw new Error((datos && datos.error) || 'Error del servidor.');
+    return datos.resultado;
+  }
+
+  const SIN_TOKEN = { iniciarSesion: true };
+  // Cosas de la versión local que aquí se administran en las hojas de Google Sheets
+  const NO_DISPONIBLES = ['listarUsuarios', 'guardarUsuario', 'eliminarUsuario', 'obtenerConfigEditable', 'guardarConfig',
+                          'crearPrimerUsuario', 'exportarRespaldo', 'importarRespaldo', 'exportarCSV', 'importarCSV', 'borrarDatos'];
+
+  window.API = new Proxy({}, {
+    get: function (_, nombre) {
+      nombre = String(nombre);
+      if (NO_DISPONIBLES.indexOf(nombre) !== -1) {
+        return function () { return Promise.reject(new Error('No disponible: se administra desde Google Sheets.')); };
+      }
+      return async function () {
+        let args = Array.prototype.slice.call(arguments);
+        if (!SIN_TOKEN[nombre]) args = args.concat([token()]);
+        let res;
+        try {
+          res = await llamarApi(nombre, args);
+        } catch (err) {
+          if (err && String(err.message).indexOf('SESION_EXPIRADA') !== -1) borrarSesion();
+          throw err;
+        }
+        if (nombre === 'iniciarSesion' && res && res.success) guardarSesion(res);
+        if (nombre === 'cerrarSesion') borrarSesion();
+        return res;
+      };
+    }
+  });
+
+  // La pantalla pregunta por la sesión al abrir: si hay token guardado, intenta reanudarla
+  window.Servidor = {
+    sesionActual: function () {
+      if (!token()) return null;
+      let u = '', r = 'editor';
+      try { u = sessionStorage.getItem(USUARIO) || ''; r = sessionStorage.getItem(ROL) || 'editor'; } catch (e) {}
+      return { usuario: u, rol: r };
+    },
+    hayUsuarios: function () { return true; }
+  };
+
+  // Las fotos viven en Google Drive: el valor guardado ya es un enlace de miniatura.
+  window.Almacen = {
+    urlFoto: function (valor) {
+      if (!valor) return Promise.resolve('');
+      const v = String(valor);
+      const m = v.match(/[-\w]{25,}/);
+      if (v.indexOf('drive.google.com') !== -1 && v.indexOf('thumbnail') === -1 && m) {
+        return Promise.resolve('https://drive.google.com/thumbnail?id=' + m[0] + '&sz=w800'); // enlaces antiguos del visor
+      }
+      return Promise.resolve(v);
+    }
+  };
+})();
+</script>
+<script>
+/**
+ * app.js - Pantallas y comportamiento de la app (versión estática).
+ *
+ * Usa  API.*  (api.js), que llama a la Web App de Google Apps Script (Codigo.gs).
+ * Los datos siguen en Google Sheets y las fotos en Google Drive.
+ */
+// =============================================================
+// ESTADO GLOBAL
+// =============================================================
+let fotoBase64 = '';
+let ultimaListaInventario = null; // última lista filtrada (para "Volver a la lista")
+let html5QrCodeDecoder = null;
+
+let USUARIO = '';
+let ROL = '';               // 'editor' | 'visor'
+
+let UBICACIONES = [];
+let ARTICULOS = [];
+let DESTINOS = [];
+let CONFIG = [];            // [{articulo, dias, aviso, campos:[...], sinAlerta:[...]}]
+
+let MANT_ACTUAL = null;     // equipo identificado en Mantenimiento {codigo, nombre, ubicacion}
+let fotoAmpEntradaBase64 = '';
+let fotoAmpMantBase64 = '';
+
+let ALERTAS = { items: [], rojos: 0, amarillos: 0, sinBase: 0 };
+let timerAlertas = null;
+
+const NUEVO_NOMBRE = '__nuevo_nombre__';
+const NUEVO_UBICACION = '__nueva_ubicacion__';
+const NUEVO_DESTINO = '__nuevo_destino__';
+
+// Clase y etiqueta de la barra según el modo (la paleta es la misma para todos)
+const CLASE_MODO = { 'Inventario': 'modo-entrada', 'salidas': 'modo-salidas', 'mantenimiento': 'modo-mantenimiento', 'consulta': 'modo-consulta' };
+const ETIQUETA_MODO = { 'Inventario': '📥 Entrada', 'salidas': '🔄 Traslado / Salida', 'mantenimiento': '🛠️ Mantenimiento', 'consulta': '🔍 Consulta' };
+
+const $ = (id) => document.getElementById(id);
+
+// =============================================================
+// PANTALLAS: PRIMER USO, LOGIN Y APP
+// =============================================================
+function mostrarPantalla(cual) {
+  if ($('pantallaSetup')) $('pantallaSetup').classList.add('campo-oculto');
+  $('pantallaLogin').classList.add('campo-oculto');
+  $('navApp').classList.toggle('campo-oculto', cual !== 'app');
+  $('contenidoApp').classList.toggle('campo-oculto', cual !== 'app');
+  if (cual === 'setup' && $('pantallaSetup')) $('pantallaSetup').classList.remove('campo-oculto');
+  if (cual === 'login') $('pantallaLogin').classList.remove('campo-oculto');
+}
+
+function ponerMensaje(id, mensaje) {
+  const el = $(id);
+  if (mensaje) { el.textContent = mensaje; el.classList.remove('campo-oculto'); }
+  else el.classList.add('campo-oculto');
+}
+
+function mostrarSetup(mensaje) {
+  mostrarPantalla('setup');
+  ponerMensaje('setupError', mensaje);
+}
+
+function mostrarLogin(mensaje) {
+  mostrarPantalla('login');
+  $('loginPassword').value = '';
+  ponerMensaje('loginError', mensaje);
+}
+
+function mostrarApp() {
+  mostrarPantalla('app');
+  $('lblUsuario').textContent = USUARIO + (ROL === 'visor' ? ' (visor)' : '');
+}
+
+function crearPrimerUsuarioUI() {
+  const u = $('setupUsuario').value.trim();
+  const c1 = $('setupClave').value;
+  const c2 = $('setupClave2').value;
+  if (c1 !== c2) { mostrarSetup('Las contraseñas no coinciden.'); return; }
+  API.crearPrimerUsuario(u, c1)
+    .then((res) => { USUARIO = res.usuario; ROL = res.rol; iniciarApp(); })
+    .catch((err) => { mostrarSetup(err.message); });
+}
+
+function hacerLogin() {
+  const usuario = $('loginUsuario').value.trim();
+  const password = $('loginPassword').value;
+  if (!usuario || !password) { mostrarLogin('Ingresa usuario y contraseña.'); return; }
+
+  const btn = $('btnLogin');
+  btn.disabled = true;
+  API.iniciarSesion(usuario, password)
+    .then((res) => {
+      btn.disabled = false;
+      if (!res || !res.success) { mostrarLogin(res ? res.message : 'No se pudo iniciar sesión.'); return; }
+      USUARIO = res.usuario;
+      ROL = res.rol;
+      iniciarApp();
+    })
+    .catch((err) => { btn.disabled = false; mostrarLogin('Error: ' + err.message); });
+}
+
+function cerrarSesion() {
+  USUARIO = '';
+  ROL = '';
+  API.cerrarSesion();
+  detenerAlertas();
+  ALERTAS = { items: [], rojos: 0, amarillos: 0, sinBase: 0 };
+  pintarCampana();
+  limpiarFormulario();
+  $('resultadoConsulta').classList.add('campo-oculto');
+  $('resultadoConsulta').innerHTML = '';
+  $('loginUsuario').value = '';
+  mostrarLogin();
+}
+
+// Si el error es de sesión o de permisos, lo maneja y devuelve true.
+function manejarErrorSesion(err) {
+  const msg = (err && err.message) ? err.message : String(err || '');
+  if (msg.indexOf('SIN_PERMISO') !== -1) {
+    mostrarLoading(false);
+    mostrarToast('Tu usuario es de solo consulta y no tiene permiso para esta acción.', 'warning');
+    return true;
+  }
+  if (msg.indexOf('SESION_EXPIRADA') !== -1) {
+    USUARIO = '';
+    ROL = '';
+    detenerAlertas();
+    mostrarLoading(false);
+    mostrarLogin('Tu sesión expiró. Vuelve a ingresar.');
+    return true;
+  }
+  return false;
+}
+
+// Según el rol: el Visor solo ve "Consultar Inventario" y no tiene menú.
+const OPCIONES_MODO = [
+  ['Inventario', '📥 Entrada'],
+  ['salidas', '🔄 Traslado / Salida'],
+  ['mantenimiento', '🛠️ Mantenimiento'],
+  ['consulta', '🔍 Consultar Inventario']
+];
+
+function aplicarRol() {
+  const esVisor = (ROL === 'visor');
+  const sel = $('selHoja');
+  sel.innerHTML = '';
+  OPCIONES_MODO.forEach((par) => {
+    if (esVisor && par[0] !== 'consulta') return;
+    const opt = document.createElement('option');
+    opt.value = par[0];
+    opt.textContent = par[1];
+    sel.appendChild(opt);
+  });
+  $('cardTipoMovimiento').classList.toggle('campo-oculto', esVisor);
+  if ($('menuAdmin')) $('menuAdmin').classList.toggle('campo-oculto', esVisor);
+}
+
+// Carga catálogos + configuración y muestra la app
+function iniciarApp() {
+  mostrarLoading(true, 'Cargando...');
+  API.cargarCatalogos()
+    .then((c) => {
+      mostrarLoading(false);
+      UBICACIONES = c.ubicaciones || [];
+      ARTICULOS = c.articulos || [];
+      DESTINOS = c.destinos || [];
+      CONFIG = c.config || [];
+      ROL = c.rol || 'editor';
+      if (c.usuario) USUARIO = c.usuario;
+      aplicarRol();
+      mostrarApp();
+      cambiarTipoMovimiento();
+      cargarAlertas();
+      detenerAlertas();
+      timerAlertas = setInterval(cargarAlertas, (window.APP_CONFIG && APP_CONFIG.INTERVALO_ALERTAS_MS) || 300000); // cada 5 min por defecto
+    })
+    .catch((err) => {
+      mostrarLoading(false);
+      if (!manejarErrorSesion(err)) mostrarLogin('Error al cargar: ' + err.message);
+    });
+}
+
+function refrescarTodosLosCatalogos() {
+  API.cargarCatalogos()
+    .then((c) => {
+      UBICACIONES = c.ubicaciones || [];
+      ARTICULOS = c.articulos || [];
+      DESTINOS = c.destinos || [];
+      CONFIG = c.config || [];
+      poblarTodosLosSelects();
+    })
+    .catch((err) => { manejarErrorSesion(err); });
+}
+
+// =============================================================
+// CAMPOS NUMÉRICOS SIN TECLA DE PUNTO (iPhone)
+//   Voltios (2 enteros) y Amperios (3 enteros): el punto se pone solo.
+//   Ohmios: un dígito con decimales hasta 10; de 10 en adelante solo
+//   enteros. Los decimales se escriben con el botón "." junto al campo.
+// =============================================================
+document.addEventListener('input', (e) => {
+  const el = e.target;
+  if (!el || !el.classList) return;
+
+  let formateado;
+  if (el.classList.contains('campo-decimal')) {
+    formateado = Reglas.formatearAutoDecimal(el.value, parseInt(el.dataset.enteros, 10) || 2);
+  } else if (el.classList.contains('campo-ohmios')) {
+    formateado = Reglas.formatearOhmios(el.value);
+  } else {
+    return;
+  }
+  if (el.value !== formateado) el.value = formateado;
+
+  if (el.id === 'inpOhmios' || el.id === 'inpAmperios') actualizarVistaBateria('entrada');
+  if (el.id === 'inpMantOhmios' || el.id === 'inpMantAmperios') actualizarVistaBateria('mant');
+});
+
+// Botón "." junto al campo de Ohmios (el teclado numérico del iPhone no trae punto)
+function insertarPunto(id) {
+  const el = $(id);
+  if (el.value === '') el.value = '0.';
+  else if (/^\d$/.test(el.value)) el.value += '.';
+  el.focus();
+  el.dispatchEvent(new Event('input', { bubbles: true }));
+}
+
+// =============================================================
+// BATERÍAS: estado según Ohmios (Ω) y Amperios (Ah)
+// =============================================================
+function htmlChipBateria(b) {
+  if (!b || b.estado === 'sinDatos') return '';
+  let clase, texto;
+  if (b.estado === 'optimo') { clase = 'bg-success'; texto = 'Óptima · ' + b.mensaje; }
+  else if (b.estado === 'medio') { clase = 'bg-warning text-dark'; texto = 'Degradada · ' + b.mensaje; }
+  else if (b.estado === 'critico') { clase = 'bg-danger'; texto = 'Deteriorada · ' + b.mensaje; }
+  else { clase = 'bg-secondary'; texto = b.mensaje; }
+  return '<span class="badge ' + clase + '">' + escaparHtml(texto) + '</span>';
+}
+
+// Vista previa mientras se escriben las mediciones (Entrada y Mantenimiento)
+function actualizarVistaBateria(destino) {
+  const esE = (destino === 'entrada');
+  const caja = $(esE ? 'vistaBateriaEntrada' : 'vistaBateriaMant');
+  const visible = (id) => !$(id).classList.contains('campo-oculto');
+  const colO = esE ? 'colOhmios' : 'colMantOhmios';
+  const colA = esE ? 'colAmperios' : 'colMantAmperios';
+
+  if (!(visible(colO) && visible(colA))) { caja.classList.add('campo-oculto'); caja.innerHTML = ''; return; }
+  const b = Reglas.evaluarBateria($(esE ? 'inpOhmios' : 'inpMantOhmios').value, $(esE ? 'inpAmperios' : 'inpMantAmperios').value);
+  if (b.estado === 'sinDatos') { caja.classList.add('campo-oculto'); caja.innerHTML = ''; return; }
+  caja.innerHTML = '<span class="small text-muted">Estado estimado: </span>' + htmlChipBateria(b);
+  caja.classList.remove('campo-oculto');
+}
+
+function htmlBateria(b) {
+  if (!b || !b.aplica || b.estado === 'sinDatos') return '';
+  const partes = [];
+  if (hayValor(b.ohmios)) partes.push('Ω ' + b.ohmios);
+  if (hayValor(b.amperios)) partes.push('Ah ' + b.amperios);
+  if (hayValor(b.voltios)) partes.push('V ' + b.voltios);
+  return '<div class="mt-1"><span class="small text-muted">Batería: </span>' + htmlChipBateria(b) +
+         (partes.length ? ' <span class="small text-muted">' + escaparHtml(partes.join(' · ')) + '</span>' : '') + '</div>';
+}
+
+function htmlCondiciones(conds) {
+  if (!conds || !conds.length) return '';
+  return '<div class="mt-1">' + conds.map((c) =>
+    '<span class="badge ' + (c.nivel === 'rojo' ? 'bg-danger' : 'bg-warning text-dark') + ' me-1">' + escaparHtml(c.texto) + '</span>'
+  ).join('') + '</div>';
+}
+
+// =============================================================
+// CÓDIGO INGRESADO (escaneado o escrito)
+// =============================================================
+function manejarCodigoIngresado(codigo) {
+  codigo = (codigo || '').trim();
+  ocultarAvisoDuplicado();
+  const modo = $('selHoja').value;
+
+  if (!codigo) {
+    if (modo === 'mantenimiento') limpiarInfoMantenimiento();
+    return;
+  }
+
+  // Evita aplicar una respuesta tardía si el código ya cambió
+  const vigente = () => $('inpCodigo').value.trim() === codigo;
+
+  if (modo === 'consulta') { consultarArticulo(); return; }
+
+  // ENTRADA: el código no puede estar ya registrado
+  if (modo === 'Inventario') {
+    API.verificarCodigoEntrada(codigo)
+      .then((res) => {
+        if (!vigente()) return;
+        if (res && res.existe) {
+          mostrarAvisoDuplicado(res);
+          mostrarToast('Ese código ya está registrado. No se puede ingresar de nuevo.', 'danger');
+        }
+      })
+      .catch((err) => { manejarErrorSesion(err); });
+    return;
+  }
+
+  // MANTENIMIENTO: identifica el equipo
+  if (modo === 'mantenimiento') {
+    limpiarInfoMantenimiento();
+    API.obtenerEstadoArticulo(codigo)
+      .then((res) => {
+        if (!vigente()) return;
+        if (!res || !res.encontrado) {
+          mostrarToast('Este código no está registrado en el inventario. Verifica el código.', 'warning');
+          return;
+        }
+        MANT_ACTUAL = { codigo: codigo, nombre: res.nombre, ubicacion: res.ubicacionActual };
+        mostrarInfoMantenimiento(res);
+        prepararCamposMantenimiento(res.nombre);
+      })
+      .catch((err) => { manejarErrorSesion(err); });
+    return;
+  }
+
+  // TRASLADO / SALIDA: autocompleta Nombre y Origen
+  $('inpOrigen').value = '';
+  $('inpNombreSalida').value = '';
+  API.obtenerEstadoArticulo(codigo)
+    .then((res) => {
+      if (!vigente()) return;
+      if (!res || !res.encontrado) {
+        mostrarToast('Este código no tiene historial: no se puede determinar el artículo ni su ubicación. Verifica el código.', 'warning');
+        return;
+      }
+      $('inpNombreSalida').value = res.nombre || '';
+      $('inpOrigen').value = res.ubicacionActual || '';
+      mostrarToast('Artículo y ubicación actual autocompletados: ' + res.ubicacionActual, 'info');
+    })
+    .catch((err) => { manejarErrorSesion(err); });
+}
+
+// =============================================================
+// MANTENIMIENTO: formulario
+// =============================================================
+function mostrarInfoMantenimiento(res) {
+  $('infoMantenimiento').innerHTML =
+    '<div class="fw-bold">' + escaparHtml(res.nombre) + '</div>' +
+    '<div class="small">Ubicación actual: <strong>' + escaparHtml(res.ubicacionActual) + '</strong></div>' +
+    htmlEstadoMantenimiento(res.mantenimiento) +
+    htmlBateria(res.bateria) +
+    htmlCondiciones(res.condiciones) +
+    '<button type="button" class="btn btn-outline-secondary btn-sm mt-2" ' +
+    'onclick="abrirHistorialDesdeAlerta(MANT_ACTUAL ? MANT_ACTUAL.codigo : \'\')">' +
+    '<i class="bi bi-clock-history"></i> Ver historial</button>';
+  $('grupoMantInfo').classList.remove('campo-oculto');
+}
+
+function limpiarInfoMantenimiento() {
+  MANT_ACTUAL = null;
+  $('infoMantenimiento').innerHTML = '';
+  $('grupoMantInfo').classList.add('campo-oculto');
+  mostrarColumnasCampos([], 'colMant', 'inpMant');
+  ['grupoMantMediciones', 'grupoMantGabinete', 'grupoFotoAmpMant', 'colMantTemperatura',
+   'colMantEstadoFisico', 'colMantLimpieza', 'vistaBateriaMant'].forEach((id) => $(id).classList.add('campo-oculto'));
+  $('inpMantTemperatura').value = '';
+  $('selMantEstadoFisico').selectedIndex = 0;
+  $('selMantLimpieza').selectedIndex = 0;
+  $('vistaBateriaMant').innerHTML = '';
+  limpiarFotoAmperios('mant');
+  $('inpMantProximo').value = '';
+}
+
+// Tras identificar el equipo: muestra los campos que pida su configuración
+function prepararCamposMantenimiento(nombre) {
+  const campos = camposDe(nombre);
+  const hay = (c) => campos.indexOf(c) !== -1;
+
+  const algunaMedicion = mostrarColumnasCampos(campos, 'colMant', 'inpMant');
+  $('colMantTemperatura').classList.toggle('campo-oculto', !hay('temperatura'));
+  if (!hay('temperatura')) $('inpMantTemperatura').value = '';
+  $('grupoMantMediciones').classList.toggle('campo-oculto', !(algunaMedicion || hay('temperatura')));
+
+  $('colMantEstadoFisico').classList.toggle('campo-oculto', !hay('estadofisico'));
+  $('colMantLimpieza').classList.toggle('campo-oculto', !hay('limpieza'));
+  $('grupoMantGabinete').classList.toggle('campo-oculto', !(hay('estadofisico') || hay('limpieza')));
+
+  $('grupoFotoAmpMant').classList.toggle('campo-oculto', !hay('amperios'));
+  if (!hay('amperios')) limpiarFotoAmperios('mant');
+
+  const cfg = configDe(nombre);
+  $('inpMantProximo').value = (cfg && cfg.dias > 0)
+    ? fechaMasDias(cfg.dias) + ' (en ' + cfg.dias + ' días)'
+    : 'Sin frecuencia configurada para este artículo';
+  actualizarVistaBateria('mant');
+}
+
+function guardarMantenimiento() {
+  const codigo = $('inpCodigo').value.trim();
+  if (!codigo) { mostrarToast('El código es obligatorio', 'warning'); return; }
+  if (!MANT_ACTUAL || MANT_ACTUAL.codigo.toLowerCase() !== codigo.toLowerCase()) {
+    mostrarToast('Escribe o escanea un código registrado y espera a que se identifique el equipo.', 'warning');
+    return;
+  }
+  if (!fotoBase64) { mostrarToast('Debes tomar una foto de evidencia', 'warning'); return; }
+
+  const visible = (id) => !$(id).classList.contains('campo-oculto');
+  const datos = {
+    codigo: codigo,
+    tipo: $('selTipoMant').value,
+    observaciones: $('inpMantObs').value.trim(),
+    voltios: valorCampoVisible('colMantVoltios', 'inpMantVoltios'),
+    amperios: valorCampoVisible('colMantAmperios', 'inpMantAmperios'),
+    ohmios: valorCampoVisible('colMantOhmios', 'inpMantOhmios'),
+    temperatura: valorCampoVisible('colMantTemperatura', 'inpMantTemperatura'),
+    estadoFisico: visible('colMantEstadoFisico') ? $('selMantEstadoFisico').value : '',
+    limpieza: visible('colMantLimpieza') ? $('selMantLimpieza').value : '',
+    imagenBase64: fotoBase64
+  };
+  if (visible('colMantEstadoFisico') && !datos.estadoFisico) { mostrarToast('Selecciona el estado físico', 'warning'); return; }
+  if (visible('colMantLimpieza') && !datos.limpieza) { mostrarToast('Indica si se hizo la limpieza', 'warning'); return; }
+  if (datos.amperios !== '' && !fotoAmpMantBase64) { mostrarToast('Debes tomar la foto de evidencia de los amperios', 'warning'); return; }
+  if (fotoAmpMantBase64) datos.imagenAmperiosBase64 = fotoAmpMantBase64;
+
+  mostrarLoading(true, 'Guardando mantenimiento...');
+  API.registrarMantenimiento(datos)
+    .then((res) => {
+      mostrarLoading(false);
+      if (res.success) {
+        mostrarToast(res.message, 'success');
+        limpiarFormulario();
+        cargarAlertas();
+      } else {
+        mostrarToast(res.message, 'danger');
+      }
+    })
+    .catch((err) => {
+      mostrarLoading(false);
+      if (manejarErrorSesion(err)) return;
+      mostrarToast('Error inesperado: ' + err.message, 'danger');
+    });
+}
+
+// =============================================================
+// CAMPANITA DE ALERTAS
+// =============================================================
+function cargarAlertas(repintarPanel) {
+  API.obtenerAlertasMantenimiento()
+    .then((res) => {
+      ALERTAS = res || { items: [], rojos: 0, amarillos: 0, sinBase: 0 };
+      pintarCampana();
+      if (repintarPanel === true) renderAlertas();
+    })
+    .catch((err) => { manejarErrorSesion(err); });
+}
+
+function pintarCampana() {
+  const b = $('badgeAlertas');
+  const total = (ALERTAS.rojos || 0) + (ALERTAS.amarillos || 0);
+  const base = 'position-absolute top-0 start-100 translate-middle badge rounded-pill ';
+  if (total > 0) {
+    b.textContent = total > 99 ? '99+' : String(total);
+    b.className = base + (ALERTAS.rojos > 0 ? 'bg-danger' : 'bg-warning text-dark');
+  } else {
+    b.className = base + 'bg-danger campo-oculto';
+  }
+}
+
+function textoEstadoAlerta(it) {
+  if (it.grupo === 'vencido') return 'Vencido hace ' + Math.abs(it.dias) + ' día(s) · era el ' + it.proximaFecha;
+  if (it.grupo === 'proximo') return (it.dias === 0 ? 'Vence hoy' : 'Vence en ' + it.dias + ' día(s)') + ' · ' + it.proximaFecha;
+  if (it.grupo === 'sinBase') return 'Sin mantenimiento ni fecha de referencia';
+  return (it.mensaje || '') + (it.detalle ? ' · ' + it.detalle : '');
+}
+
+function renderAlertas() {
+  const cuerpo = $('cuerpoAlertas');
+  const items = ALERTAS.items || [];
+
+  if (items.length === 0) {
+    cuerpo.innerHTML = '<div class="alert alert-success mb-0"><i class="bi bi-check-circle-fill"></i> No hay alertas pendientes.</div>';
+    return;
+  }
+
+  const grupos = [
+    { g: 'reemplazo', titulo: '🔴 Tiempo de reemplazo', clase: 'al-vencido' },
+    { g: 'revision', titulo: '🔴 Requiere revisión', clase: 'al-vencido' },
+    { g: 'vencido', titulo: '🔴 Mantenimiento vencido', clase: 'al-vencido' },
+    { g: 'atencion', titulo: '🟡 Atención', clase: 'al-proximo' },
+    { g: 'proximo', titulo: '🟡 Próximos', clase: 'al-proximo' },
+    { g: 'sinBase', titulo: '⚪ Sin mantenimiento registrado', clase: 'al-sinbase' }
+  ];
+
+  let html = '<div class="small text-muted mb-3">' +
+    (ROL === 'visor' ? 'Toca un equipo para ver su historial.' : 'Toca un equipo para registrar su mantenimiento.') + '</div>';
+  grupos.forEach((gr) => {
+    const lista = items.filter((it) => it.grupo === gr.g);
+    if (lista.length === 0) return;
+    html += '<h6 class="mt-2 mb-2">' + gr.titulo + ' (' + lista.length + ')</h6>';
+    lista.forEach((it) => {
+      html += '<div class="item-inv ' + gr.clase + '" data-codigo="' + escaparAttr(it.codigo) + '">';
+      html += '  <div class="item-info">';
+      html += '    <div class="fw-bold">' + escaparHtml(it.nombre || '(sin nombre)') + '</div>';
+      html += '    <div class="small text-muted">Código: ' + escaparHtml(it.codigo) + '</div>';
+      html += '    <div class="small"><i class="bi bi-geo-alt"></i> ' + escaparHtml(it.ubicacion || '(sin ubicación)') + '</div>';
+      html += '    <div class="small' + (it.grupo === 'reemplazo' ? ' fw-bold text-danger' : '') + '">' + escaparHtml(textoEstadoAlerta(it)) + '</div>';
+      html += '  </div>';
+      html += '</div>';
+    });
+  });
+
+  cuerpo.innerHTML = html;
+  cuerpo.querySelectorAll('.item-inv').forEach((el) => {
+    el.addEventListener('click', () => abrirDesdeAlerta(el.dataset.codigo));
+  });
+}
+
+// =============================================================
+// FOTOS GUARDADAS EN EL NAVEGADOR (IndexedDB)
+// =============================================================
+// Los elementos con data-foto="ID" cargan su imagen desde el almacén local.
+function hidratarFotos(contenedor) {
+  contenedor.querySelectorAll('[data-foto]').forEach((el) => {
+    Almacen.urlFoto(el.getAttribute('data-foto')).then((url) => {
+      const caja = el.closest('[data-foto-caja]') || el;
+      if (!url) { caja.style.display = 'none'; return; }
+      if (el.tagName === 'IMG') el.src = url; else el.href = url;
+    });
+  });
+}
+
+function htmlMiniaturaHistorial(valor, etiqueta) {
+  if (!valor) return '';
+  return '<div class="text-center" data-foto-caja>' +
+    '<a data-foto="' + escaparAttr(valor) + '" href="#" target="_blank" rel="noopener">' +
+    '<img data-foto="' + escaparAttr(valor) + '" alt="' + escaparAttr(etiqueta) + '" ' +
+    'style="max-width:110px;max-height:110px;border-radius:8px;object-fit:cover;border:1px solid #ddd;"></a>' +
+    '<div class="small text-muted">' + escaparHtml(etiqueta) + '</div></div>';
+}
+
+function htmlFotosHistorial(ev) {
+  const a = htmlMiniaturaHistorial(ev.imagen, 'Evidencia');
+  const b = htmlMiniaturaHistorial(ev.imagenAmperios, 'Amperios');
+  return (a || b) ? '<div class="mt-2 d-flex gap-2 flex-wrap">' + a + b + '</div>' : '';
+}
+
+// =============================================================
+// CONSULTAR INVENTARIO
+// =============================================================
+function consultarArticulo(desdeLista) {
+  const codigo = $('inpCodigo').value.trim();
+  if (!codigo) {
+    if ($('selFiltroUbicacion').value || $('selFiltroNombre').value) { filtrarInventario(); return; }
+    mostrarToast('Escribe o escanea un código, o elige una ubicación o un artículo', 'warning');
+    return;
+  }
+
+  // Búsqueda nueva por código: se limpian los filtros (si viene de la lista, se conservan)
+  if (desdeLista !== true) {
+    $('selFiltroUbicacion').selectedIndex = 0;
+    $('selFiltroNombre').selectedIndex = 0;
+    ultimaListaInventario = null;
+  }
+
+  mostrarLoading(true, 'Buscando historial...');
+  API.obtenerEstadoArticulo(codigo)
+    .then((res) => { mostrarLoading(false); mostrarResultadoConsulta(res, desdeLista === true); })
+    .catch((err) => {
+      mostrarLoading(false);
+      if (manejarErrorSesion(err)) return;
+      mostrarToast('Error al consultar: ' + err.message, 'danger');
+    });
+}
+
+function mostrarResultadoConsulta(res, conVolver) {
+  const panel = $('resultadoConsulta');
+  panel.classList.remove('campo-oculto');
+
+  if (!res || !res.encontrado) {
+    panel.innerHTML = '<div class="alert alert-warning mb-0">No se encontró historial para este código.</div>';
+    return;
+  }
+
+  let html = '';
+  if (conVolver && ultimaListaInventario) {
+    html += '<button type="button" class="btn btn-outline-secondary btn-sm mb-3" onclick="volverALista()"><i class="bi bi-arrow-left"></i> Volver a la lista</button>';
+  }
+  html += '<div class="mb-3">';
+  html += '  <div class="fw-bold fs-5 texto-acento">' + escaparHtml(res.nombre) + '</div>';
+  html += '  <div class="text-muted">Ubicación actual: <span class="fw-semibold text-dark">' + escaparHtml(res.ubicacionActual) + '</span></div>';
+  html += htmlEstadoMantenimiento(res.mantenimiento);
+  html += htmlBateria(res.bateria);
+  html += htmlCondiciones(res.condiciones);
+  html += '</div>';
+  html += '<h6 class="mb-2"><i class="bi bi-clock-history"></i> Historial del equipo</h6>';
+
+  res.historial.forEach((ev) => {
+    const esEntrada = ev.tipo === 'Entrada';
+    const esMant = ev.tipo === 'Mantenimiento';
+
+    let claseCard, claseBadge, detalle;
+    if (esMant) {
+      claseCard = 'ev-mant';
+      claseBadge = 'bg-warning text-dark';
+      detalle = '<strong>' + escaparHtml(ev.tipoMant || 'Mantenimiento') + '</strong>';
+      const extra = [];
+      if (ev.estadoFisico) extra.push('Estado físico: ' + escaparHtml(ev.estadoFisico));
+      if (ev.limpieza) extra.push('Limpieza: ' + escaparHtml(ev.limpieza));
+      if (hayValor(ev.temperatura)) extra.push('Temperatura: ' + escaparHtml(String(ev.temperatura)) + ' °C');
+      if (extra.length) detalle += '<div class="small text-muted">' + extra.join(' · ') + '</div>';
+      if (ev.observaciones) detalle += '<div>' + escaparHtml(ev.observaciones) + '</div>';
+      detalle += htmlMediciones(ev);
+      if (ev.proxima) detalle += '<div class="small text-muted">Próximo mantenimiento: ' + escaparHtml(ev.proxima) + '</div>';
+    } else if (esEntrada) {
+      claseCard = 'ev-entrada';
+      claseBadge = 'bg-success';
+      detalle = 'Ingresó a <strong>' + escaparHtml(ev.ubicacion) + '</strong>' +
+                (ev.stock !== '' ? (' · Cantidad: ' + escaparHtml(String(ev.stock))) : '');
+      detalle += htmlMediciones(ev);
+    } else {
+      claseCard = 'ev-salida';
+      claseBadge = 'bg-primary';
+      detalle = 'De <strong>' + escaparHtml(ev.origen) + '</strong> hacia <strong>' + escaparHtml(ev.destino) + '</strong>';
+    }
+
+    const usuarioHtml = '<div class="small text-muted"><i class="bi bi-person"></i> ' +
+      (ev.usuario ? escaparHtml(ev.usuario) : '(sin usuario)') + '</div>';
+
+    html += '<div class="evento-card ' + claseCard + '">';
+    html += '  <div class="d-flex justify-content-between align-items-center">';
+    html += '    <span class="badge ' + claseBadge + '">' + (esMant ? '🛠️ ' : '') + escaparHtml(ev.tipo) + '</span>';
+    html += '    <small class="text-muted">' + escaparHtml(ev.fecha) + '</small>';
+    html += '  </div>';
+    html += '  <div class="mt-1">' + detalle + '</div>';
+    html += usuarioHtml;
+    html += htmlFotosHistorial(ev);
+    html += '</div>';
+  });
+
+  panel.innerHTML = html;
+  hidratarFotos(panel);
+  if (conVolver) panel.scrollIntoView({ behavior: 'smooth', block: 'start' });
+}
+
+function filtrarInventario() {
+  const ubic = $('selFiltroUbicacion').value;
+  const nom = $('selFiltroNombre').value;
+  const panel = $('resultadoConsulta');
+
+  $('inpCodigo').value = '';   // al filtrar, el código deja de mandar
+
+  if (!ubic && !nom) {
+    ultimaListaInventario = null;
+    panel.classList.add('campo-oculto');
+    panel.innerHTML = '';
+    return;
+  }
+
+  mostrarLoading(true, 'Buscando inventario...');
+  API.obtenerInventarioActual(ubic, nom)
+    .then((res) => {
+      mostrarLoading(false);
+      ultimaListaInventario = { res: res, ubic: ubic, nom: nom };
+      mostrarListaInventario(res, ubic, nom);
+    })
+    .catch((err) => {
+      mostrarLoading(false);
+      if (manejarErrorSesion(err)) return;
+      mostrarToast('Error al consultar el inventario: ' + err.message, 'danger');
+    });
+}
+
+// =============================================================
+// GUARDAR (Entrada / Traslado)
+// =============================================================
+function guardarRegistro() {
+  const hoja = $('selHoja').value;
+  if (hoja === 'mantenimiento') { guardarMantenimiento(); return; }
+
+  const codigo = $('inpCodigo').value.trim();
+  const nombre = (hoja === 'salidas')
+    ? $('inpNombreSalida').value.trim()
+    : obtenerValorSeleccionado('selNombre', 'inpNombreNuevo', NUEVO_NOMBRE);
+
+  if (!codigo) { mostrarToast('El código es obligatorio', 'warning'); return; }
+
+  if (hoja === 'Inventario' && !$('avisoCodigoDuplicado').classList.contains('campo-oculto')) {
+    mostrarToast('Ese código ya está registrado. No se puede ingresar de nuevo.', 'danger');
+    return;
+  }
+  if (!nombre) {
+    mostrarToast(hoja === 'salidas'
+      ? 'No se pudo determinar el Nombre del artículo. Escanea el código para completarlo automáticamente.'
+      : 'Debes seleccionar o escribir un Nombre de artículo', 'warning');
+    return;
+  }
+  if (!fotoBase64) { mostrarToast('Debes tomar una foto de evidencia', 'warning'); return; }
+
+  const datos = { hoja: hoja, codigo: codigo, nombre: nombre, imagenBase64: fotoBase64 };
+
+  if (hoja === 'Inventario') {
+    const ubicacion = obtenerValorSeleccionado('selUbicacionEntrada', 'inpUbicacionEntradaNueva', NUEVO_UBICACION);
+    if (!ubicacion) { mostrarToast('Debes seleccionar o escribir una Ubicación', 'warning'); return; }
+    datos.cantidad = $('inpCantidad').value;
+    datos.ubicacion = ubicacion;
+    datos.voltios = valorCampoVisible('colVoltios', 'inpVoltios');
+    datos.amperios = valorCampoVisible('colAmperios', 'inpAmperios');
+    datos.ohmios = valorCampoVisible('colOhmios', 'inpOhmios');
+    if (datos.amperios !== '' && !fotoAmpEntradaBase64) {
+      mostrarToast('Debes tomar la foto de evidencia de los amperios', 'warning');
+      return;
+    }
+    if (fotoAmpEntradaBase64) datos.imagenAmperiosBase64 = fotoAmpEntradaBase64;
+  } else if (hoja === 'salidas') {
+    const origen = $('inpOrigen').value.trim();
+    const destino = obtenerValorSeleccionado('selDestino', 'inpDestinoNuevo', NUEVO_DESTINO);
+    if (!origen) { mostrarToast('No se pudo determinar la Ubicación actual (Origen). Escanea el código para completarla automáticamente.', 'warning'); return; }
+    if (!destino) { mostrarToast('Debes seleccionar o escribir el Destino', 'warning'); return; }
+    datos.origen = origen;
+    datos.destino = destino;
+  }
+
+  mostrarLoading(true, 'Guardando registro...');
+  API.registrarMovimiento(datos)
+    .then((res) => {
+      mostrarLoading(false);
+      if (res.success) {
+        mostrarToast(res.message, 'success');
+        limpiarFormulario();
+        refrescarTodosLosCatalogos();
+        cargarAlertas();
+      } else {
+        mostrarToast(res.message, 'danger');
+      }
+    })
+    .catch((err) => {
+      mostrarLoading(false);
+      if (manejarErrorSesion(err)) return;
+      mostrarToast('Error inesperado: ' + err.message, 'danger');
+    });
+}
+
+function limpiarFormulario() {
+  ['inpCodigo', 'inpNombreNuevo', 'inpNombreSalida', 'inpCantidad', 'inpUbicacionEntradaNueva', 'inpOrigen',
+   'inpDestinoNuevo', 'inpMantObs'].forEach((id) => { $(id).value = ''; });
+  $('selTipoMant').selectedIndex = 0;
+  ultimaListaInventario = null;
+  ['selNombre', 'selUbicacionEntrada', 'selDestino', 'selFiltroUbicacion', 'selFiltroNombre'].forEach((id) => {
+    const el = $(id);
+    if (el.options.length > 0) el.selectedIndex = 0;
+  });
+  ['inpNombreNuevo', 'inpUbicacionEntradaNueva', 'inpDestinoNuevo'].forEach((id) => $(id).classList.add('campo-oculto'));
+  $('preview-foto').style.display = 'none';
+  $('preview-foto').src = '';
+  $('preview-codigo-foto').style.display = 'none';
+  $('preview-codigo-foto').src = '';
+  fotoBase64 = '';
+  ocultarAvisoDuplicado();
+  limpiarFotoAmperios('entrada');
+  limpiarInfoMantenimiento();
+  actualizarCamposEntrada();
+}
+
+// =============================================================
+// MENÚ: USUARIOS
+// =============================================================
+function abrirModal(id) { bootstrap.Modal.getOrCreateInstance($(id)).show(); }
+function cerrarModal(id) { const m = bootstrap.Modal.getInstance($(id)); if (m) m.hide(); }
+
+function errorUI(err) { if (!manejarErrorSesion(err)) mostrarToast(err.message, 'danger'); }
+
+function abrirUsuarios() { renderUsuarios(); abrirModal('modalUsuarios'); }
+
+function renderUsuarios() {
+  API.listarUsuarios().then((lista) => {
+    $('listaUsuarios').innerHTML = lista.map((u) =>
+      '<div class="d-flex justify-content-between align-items-center border rounded p-2 mb-2">' +
+      '<div><strong>' + escaparHtml(u.usuario) + '</strong> ' +
+      '<span class="badge ' + (u.rol === 'visor' ? 'bg-secondary' : 'bg-primary') + '">' + (u.rol === 'visor' ? 'Visor' : 'Editor') + '</span></div>' +
+      (u.usuario.toLowerCase() === USUARIO.toLowerCase() ? '<span class="small text-muted">(tú)</span>' :
+        '<button type="button" class="btn btn-sm btn-outline-danger" data-usuario="' + escaparAttr(u.usuario) + '"><i class="bi bi-trash"></i></button>') +
+      '</div>').join('');
+    $('listaUsuarios').querySelectorAll('button[data-usuario]').forEach((b) => {
+      b.addEventListener('click', () => eliminarUsuarioUI(b.dataset.usuario));
+    });
+  }).catch(errorUI);
+}
+
+function guardarUsuarioUI() {
+  API.guardarUsuario($('usrNombre').value, $('usrClave').value, $('usrRol').value)
+    .then(() => {
+      mostrarToast('Usuario guardado', 'success');
+      $('usrNombre').value = ''; $('usrClave').value = '';
+      renderUsuarios();
+    }).catch(errorUI);
+}
+
+function eliminarUsuarioUI(usuario) {
+  if (!confirm('¿Eliminar al usuario "' + usuario + '"?')) return;
+  API.eliminarUsuario(usuario).then(() => { mostrarToast('Usuario eliminado', 'success'); renderUsuarios(); }).catch(errorUI);
+}
+
+// =============================================================
+// MENÚ: CONFIGURAR ARTÍCULOS
+// =============================================================
+let CONFIG_EDIT = [];
+
+function abrirConfig() {
+  API.obtenerConfigEditable().then((filas) => {
+    CONFIG_EDIT = filas.map((f) => Object.assign({}, f));
+    renderConfig();
+    abrirModal('modalConfig');
+  }).catch(errorUI);
+}
+
+function editarConfig(i, campo, valor) { CONFIG_EDIT[i][campo] = valor; }
+
+function renderConfig() {
+  const campo = (i, k, etiqueta, tipo, ph) =>
+    '<label class="form-label small mb-1">' + etiqueta + '</label>' +
+    '<input type="' + tipo + '" class="form-control" ' + (tipo === 'number' ? 'min="0" inputmode="numeric" ' : '') +
+    'value="' + escaparAttr(CONFIG_EDIT[i][k] === undefined ? '' : CONFIG_EDIT[i][k]) + '" placeholder="' + escaparAttr(ph || '') + '" ' +
+    'oninput="editarConfig(' + i + ',\'' + k + '\',this.value)">';
+
+  $('listaConfig').innerHTML = CONFIG_EDIT.map((f, i) =>
+    '<div class="card p-3 mb-2"><div class="row g-2">' +
+    '<div class="col-12">' + campo(i, 'articulo', 'Artículo (igual que en el catálogo)', 'text', 'Bateria') + '</div>' +
+    '<div class="col-6">' + campo(i, 'dias', 'Mantenimiento cada (días)', 'number', '90') + '</div>' +
+    '<div class="col-6">' + campo(i, 'aviso', 'Avisar (días antes)', 'number', '15') + '</div>' +
+    '<div class="col-12">' + campo(i, 'campos', 'Campos extra', 'text', 'Voltios, Amperios, Ohmios, Temperatura, Estado físico, Limpieza') + '</div>' +
+    '<div class="col-12">' + campo(i, 'sinAlerta', 'Sin alerta en ubicaciones que contengan', 'text', 'Basura, Bodega') + '</div>' +
+    '<div class="col-12 text-end"><button type="button" class="btn btn-sm btn-outline-danger" onclick="quitarFilaConfig(' + i + ')"><i class="bi bi-trash"></i> Quitar</button></div>' +
+    '</div></div>').join('');
+}
+
+function agregarFilaConfig() { CONFIG_EDIT.push({ articulo: '', dias: 0, aviso: '', campos: '', sinAlerta: '' }); renderConfig(); }
+function quitarFilaConfig(i) { CONFIG_EDIT.splice(i, 1); renderConfig(); }
+
+function guardarConfigUI() {
+  API.guardarConfig(CONFIG_EDIT).then(() => {
+    mostrarToast('Configuración guardada', 'success');
+    cerrarModal('modalConfig');
+    refrescarTodosLosCatalogos();
+    cargarAlertas();
+  }).catch(errorUI);
+}
+
+// =============================================================
+// MENÚ: RESPALDO Y DATOS (exportar / importar JSON y CSV)
+// =============================================================
+function abrirRespaldo() { abrirModal('modalRespaldo'); }
+
+function descargar(nombre, contenido, tipo) {
+  const blob = new Blob([contenido], { type: tipo });
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(blob);
+  a.download = nombre;
+  document.body.appendChild(a);
+  a.click();
+  a.remove();
+  setTimeout(() => URL.revokeObjectURL(a.href), 3000);
+}
+
+function marcaDeTiempo() { return Reglas.isoDia(Date.now()); }
+
+function exportarJSONUI() {
+  mostrarLoading(true, 'Preparando respaldo...');
+  API.exportarRespaldo()
+    .then((obj) => {
+      mostrarLoading(false);
+      descargar('inventario-respaldo-' + marcaDeTiempo() + '.json', JSON.stringify(obj), 'application/json');
+      mostrarToast('Respaldo descargado', 'success');
+    }).catch((err) => { mostrarLoading(false); errorUI(err); });
+}
+
+function importarJSONUI(archivo) {
+  if (!archivo) return;
+  if (!confirm('Esto REEMPLAZA todos los datos y fotos de este navegador por los del respaldo. ¿Continuar?')) { $('archivoJSON').value = ''; return; }
+  mostrarLoading(true, 'Importando respaldo...');
+  archivo.text()
+    .then((t) => API.importarRespaldo(JSON.parse(t)))
+    .then((r) => {
+      mostrarLoading(false);
+      alert('Respaldo importado: ' + r.inventario + ' entradas, ' + r.salidas + ' traslados, ' + r.mantenimientos + ' mantenimientos y ' + r.fotos + ' fotos.\nLa aplicación se recargará.');
+      location.reload();
+    })
+    .catch((err) => { mostrarLoading(false); $('archivoJSON').value = ''; errorUI(err instanceof SyntaxError ? new Error('El archivo no es un JSON válido.') : err); });
+}
+
+function exportarCSVUI(tabla) {
+  API.exportarCSV(tabla).then((csv) => {
+    descargar(tabla + '-' + marcaDeTiempo() + '.csv', csv, 'text/csv;charset=utf-8');
+    mostrarToast('CSV descargado (no incluye fotos)', 'success');
+  }).catch(errorUI);
+}
+
+function importarCSVUI(archivo) {
+  if (!archivo) return;
+  const tabla = $('selTablaCSV').value;
+  archivo.text()
+    .then((t) => API.importarCSV(tabla, t))
+    .then((r) => {
+      $('archivoCSV').value = '';
+      mostrarToast('CSV importado: ' + r.agregadas + ' fila(s) agregadas, ' + r.omitidas + ' omitidas', 'success');
+      refrescarTodosLosCatalogos();
+      cargarAlertas();
+    })
+    .catch((err) => { $('archivoCSV').value = ''; errorUI(err); });
+}
+
+function borrarDatosUI() {
+  if (!confirm('Se borrarán TODOS los registros y fotos de este navegador (los usuarios y la configuración se conservan). ¿Continuar?')) return;
+  if (!confirm('Esta acción no se puede deshacer. ¿Ya descargaste un respaldo?')) return;
+  API.borrarDatos().then(() => {
+    mostrarToast('Datos borrados', 'success');
+    refrescarTodosLosCatalogos();
+    cargarAlertas();
+    cerrarModal('modalRespaldo');
+  }).catch(errorUI);
+}
+
+// =============================================================
+// ARRANQUE
+// =============================================================
+document.addEventListener('visibilitychange', () => { if (!document.hidden && USUARIO) cargarAlertas(); });
+
+window.onload = () => {
+  const s = Servidor.sesionActual();
+  if (s) { USUARIO = s.usuario; ROL = s.rol; iniciarApp(); }
+  else if (!Servidor.hayUsuarios()) mostrarSetup();
+  else mostrarLogin();
+};
+
+// =============================================================
+// FUNCIONES AUXILIARES (selects, escáner, fotos, avisos)
+// =============================================================
+function poblarSelectGenerico(selectId, lista, valorNuevo, textoVacio, textoNuevo) {
+  const select = document.getElementById(selectId);
+  const valorActual = select.value;
+  select.innerHTML = '';
+
+  if (!lista || lista.length === 0) {
+    const optVacio = document.createElement('option');
+    optVacio.value = '';
+    optVacio.textContent = textoVacio;
+    optVacio.disabled = true;
+    optVacio.selected = true;
+    select.appendChild(optVacio);
+  } else {
+    lista.forEach((v) => {
+      const opt = document.createElement('option');
+      opt.value = v;
+      opt.textContent = v;
+      select.appendChild(opt);
+    });
+  }
+
+  const optNuevo = document.createElement('option');
+  optNuevo.value = valorNuevo;
+  optNuevo.textContent = textoNuevo;
+  select.appendChild(optNuevo);
+
+  if (valorActual && Array.from(select.options).some(o => o.value === valorActual)) {
+    select.value = valorActual;
+  }
+}
+
+function onCambioSelectConNuevo(selectId, inputNuevoId, valorNuevo) {
+  const select = document.getElementById(selectId);
+  const inputNuevo = document.getElementById(inputNuevoId);
+  if (select.value === valorNuevo) {
+    inputNuevo.classList.remove('campo-oculto');
+    inputNuevo.focus();
+  } else {
+    inputNuevo.classList.add('campo-oculto');
+    inputNuevo.value = '';
+  }
+}
+
+function obtenerValorSeleccionado(selectId, inputNuevoId, valorNuevo) {
+  const select = document.getElementById(selectId);
+  if (select.value === valorNuevo) {
+    return document.getElementById(inputNuevoId).value.trim();
+  }
+  return select.value;
+}
+
+function poblarSelectFiltro(selectId, lista, textoTodos) {
+  const select = document.getElementById(selectId);
+  const valorActual = select.value;
+  select.innerHTML = '';
+  const optTodos = document.createElement('option');
+  optTodos.value = '';
+  optTodos.textContent = textoTodos;
+  select.appendChild(optTodos);
+  (lista || []).forEach((v) => {
+    const opt = document.createElement('option');
+    opt.value = v;
+    opt.textContent = v;
+    select.appendChild(opt);
+  });
+  if (valorActual && Array.from(select.options).some(o => o.value === valorActual)) {
+    select.value = valorActual;
+  }
+}
+
+function poblarTodosLosSelects() {
+  poblarSelectFiltro('selFiltroUbicacion', UBICACIONES, 'Todas las ubicaciones');
+  poblarSelectFiltro('selFiltroNombre', ARTICULOS, 'Todos los artículos');
+  poblarSelectGenerico('selNombre', ARTICULOS, NUEVO_NOMBRE, '-- No hay artículos registrados --', '➕ Agregar nuevo artículo...');
+  poblarSelectGenerico('selUbicacionEntrada', UBICACIONES, NUEVO_UBICACION, '-- No hay ubicaciones registradas --', '➕ Agregar nueva ubicación...');
+  poblarSelectGenerico('selDestino', DESTINOS, NUEVO_DESTINO, '-- No hay destinos registrados --', '➕ Agregar nuevo destino...');
+  onCambioSelectConNuevo('selNombre', 'inpNombreNuevo', NUEVO_NOMBRE);
+  onCambioSelectConNuevo('selUbicacionEntrada', 'inpUbicacionEntradaNueva', NUEVO_UBICACION);
+  onCambioSelectConNuevo('selDestino', 'inpDestinoNuevo', NUEVO_DESTINO);
+  actualizarCamposEntrada();
+}
+
+function cambiarTipoMovimiento() {
+  const modo = document.getElementById('selHoja').value;
+
+  document.body.className = CLASE_MODO[modo] || 'modo-entrada';
+  document.getElementById('badgeModo').textContent = ETIQUETA_MODO[modo] || '';
+
+  const ids = [
+    'grupoNombre', 'grupoNombreSalida', 'grupoFiltrosConsulta', 'grupoCantidad', 'grupoUbicacionEntrada',
+    'grupoEspecsEntrada', 'grupoOrigen', 'grupoDestino', 'grupoFecha',
+    'grupoMantInfo', 'grupoMantTipo', 'grupoMantMediciones', 'grupoMantGabinete', 'grupoMantObs', 'grupoMantProximo'
+  ];
+  ids.forEach((id) => document.getElementById(id).classList.add('campo-oculto'));
+
+  const grupoFoto = document.getElementById('grupoFoto');
+  const btnGuardar = document.getElementById('btnGuardar');
+  const btnBuscar = document.getElementById('btnBuscar');
+  const resultadoConsulta = document.getElementById('resultadoConsulta');
+  const ayudaCodigo = document.getElementById('ayudaCodigo');
+  const mostrar = (id) => document.getElementById(id).classList.remove('campo-oculto');
+
+  grupoFoto.classList.remove('campo-oculto');
+  btnGuardar.classList.remove('campo-oculto');
+  btnBuscar.classList.add('campo-oculto');
+  resultadoConsulta.classList.add('campo-oculto');
+  resultadoConsulta.innerHTML = '';
+
+  if (modo === 'Inventario') {
+    ayudaCodigo.textContent = 'Escanea el código del artículo. Cada código solo se puede ingresar una vez.';
+    mostrar('grupoNombre');
+    mostrar('grupoCantidad');
+    mostrar('grupoUbicacionEntrada');
+    mostrar('grupoFecha');
+    document.getElementById('inpFecha').value = new Date().toLocaleString('es-CR');
+  } else if (modo === 'salidas') {
+    ayudaCodigo.textContent = 'Escanea el código: el Nombre y la Ubicación actual se autocompletan solos. Solo elige el Destino.';
+    mostrar('grupoNombreSalida');
+    mostrar('grupoOrigen');
+    mostrar('grupoDestino');
+    mostrar('grupoFecha');
+    document.getElementById('inpFecha').value = new Date().toLocaleString('es-CR');
+  } else if (modo === 'mantenimiento') {
+    ayudaCodigo.textContent = 'Escanea el código del equipo (batería, CPU, etc.) para registrar su mantenimiento.';
+    mostrar('grupoMantTipo');
+    mostrar('grupoMantObs');
+    mostrar('grupoMantProximo');
+    mostrar('grupoFecha');
+    document.getElementById('inpFecha').value = new Date().toLocaleString('es-CR');
+  } else if (modo === 'consulta') {
+    ayudaCodigo.textContent = 'Escanea o escribe un código para ver su historial, o filtra por ubicación o artículo.';
+    mostrar('grupoFiltrosConsulta');
+    grupoFoto.classList.add('campo-oculto');
+    btnGuardar.classList.add('campo-oculto');
+    btnBuscar.classList.remove('campo-oculto');
+  }
+
+  poblarTodosLosSelects();
+  limpiarFormulario();
+}
+
+function crearInstanciaScanner() {
+  if (!html5QrCodeDecoder) {
+    html5QrCodeDecoder = new Html5Qrcode("reader", {
+      formatsToSupport: [
+        Html5QrcodeSupportedFormats.QR_CODE,
+        Html5QrcodeSupportedFormats.CODE_128,
+        Html5QrcodeSupportedFormats.CODE_39,
+        Html5QrcodeSupportedFormats.EAN_13,
+        Html5QrcodeSupportedFormats.EAN_8,
+        Html5QrcodeSupportedFormats.UPC_A,
+        Html5QrcodeSupportedFormats.UPC_E,
+        Html5QrcodeSupportedFormats.ITF,
+        Html5QrcodeSupportedFormats.CODABAR,
+        Html5QrcodeSupportedFormats.DATA_MATRIX
+      ],
+      verbose: false
+    });
+  }
+  return html5QrCodeDecoder;
+}
+
+function dataUrlABlob(dataUrl, nombreArchivo) {
+  return fetch(dataUrl)
+    .then((r) => r.blob())
+    .then((blob) => new File([blob], nombreArchivo, { type: blob.type }));
+}
+
+function recortarYAmpliarCentro(dataUrl, proporcion, maxAncho) {
+  return new Promise((resolve, reject) => {
+    const img = new Image();
+    img.onerror = () => reject('No se pudo procesar la imagen');
+    img.onload = () => {
+      const anchoRecorte = img.width * proporcion;
+      const altoRecorte = img.height * proporcion;
+      const x = (img.width - anchoRecorte) / 2;
+      const y = (img.height - altoRecorte) / 2;
+
+      const canvas = document.createElement('canvas');
+      canvas.width = maxAncho;
+      canvas.height = Math.round(maxAncho * (altoRecorte / anchoRecorte));
+      canvas.getContext('2d').drawImage(img, x, y, anchoRecorte, altoRecorte, 0, 0, canvas.width, canvas.height);
+      resolve(canvas.toDataURL('image/jpeg', 0.9));
+    };
+    img.src = dataUrl;
+  });
+}
+
+async function decodificarConReintento(file) {
+  const scanner = crearInstanciaScanner();
+
+  const dataUrlCompleta = await redimensionarImagen(file, 1280, 0.9);
+  try {
+    const archivo1 = await dataUrlABlob(dataUrlCompleta, 'scan1.jpg');
+    return await scanner.scanFile(archivo1, false);
+  } catch (e1) {
+    const dataUrlRecortada = await recortarYAmpliarCentro(dataUrlCompleta, 0.6, 1280);
+    const archivo2 = await dataUrlABlob(dataUrlRecortada, 'scan2.jpg');
+    return await scanner.scanFile(archivo2, false);
+  }
+}
+
+async function procesarFotoCodigo(file) {
+  if (!file) return;
+
+  const preview = document.getElementById('preview-codigo-foto');
+  const urlPreview = URL.createObjectURL(file);
+  preview.src = urlPreview;
+  preview.style.display = 'block';
+
+  mostrarLoading(true, 'Leyendo código...');
+
+  try {
+    const decodedText = await decodificarConReintento(file);
+    document.getElementById('inpCodigo').value = decodedText;
+    mostrarToast('Código detectado: ' + decodedText, 'success');
+    manejarCodigoIngresado(decodedText);
+  } catch (e) {
+    mostrarToast('No se pudo leer un código en la foto. Acércate más, con buena luz y sin reflejos, o escríbelo manualmente.', 'warning');
+  } finally {
+    mostrarLoading(false);
+    document.getElementById('inputScanner').value = '';
+  }
+}
+
+function ocultarAvisoDuplicado() {
+  const av = document.getElementById('avisoCodigoDuplicado');
+  av.classList.add('campo-oculto');
+  av.textContent = '';
+}
+
+function mostrarAvisoDuplicado(res) {
+  const av = document.getElementById('avisoCodigoDuplicado');
+  let txt = 'Este código ya está registrado';
+  if (res.nombre) txt += ' como "' + res.nombre + '"';
+  if (res.ubicacion) txt += ' (ubicación actual: ' + res.ubicacion + ')';
+  txt += '. No se puede ingresar de nuevo; usa Traslado / Salida para moverlo.';
+  av.textContent = txt;
+  av.classList.remove('campo-oculto');
+}
+
+function htmlEstadoMantenimiento(m) {
+  if (m && m.silenciado) {
+    return '<div class="mt-1 small text-muted"><i class="bi bi-bell-slash"></i> Sin alerta de mantenimiento en esta ubicación</div>';
+  }
+  if (!m || !m.aplica) return '';
+  let badge, texto;
+  if (m.estado === 'sinBase') {
+    badge = 'bg-secondary'; texto = 'Sin mantenimiento registrado';
+  } else if (m.estado === 'vencido') {
+    badge = 'bg-danger'; texto = 'Vencido hace ' + Math.abs(m.dias) + ' día(s)';
+  } else if (m.estado === 'proximo') {
+    badge = 'bg-warning text-dark'; texto = (m.dias === 0) ? 'Vence hoy' : 'Vence en ' + m.dias + ' día(s)';
+  } else {
+    badge = 'bg-success'; texto = 'Al día (' + m.dias + ' día(s) restantes)';
+  }
+  let det = '';
+  if (m.ultimaFecha) det += 'Último: ' + escaparHtml(m.ultimaFecha);
+  if (m.proximaFecha) det += (det ? ' · ' : '') + 'Próximo: ' + escaparHtml(m.proximaFecha);
+  return '<div class="mt-1"><span class="badge ' + badge + '">' + texto + '</span> ' +
+         '<span class="small text-muted">' + det + '</span></div>';
+}
+
+function abrirAlertas() {
+  renderAlertas();
+  bootstrap.Modal.getOrCreateInstance(document.getElementById('modalAlertas')).show();
+  cargarAlertas(true); // refresca en segundo plano y vuelve a pintar el panel
+}
+
+function abrirDesdeAlerta(codigo) {
+  if (ROL === 'visor') { abrirHistorialDesdeAlerta(codigo); return; }
+  const modal = bootstrap.Modal.getInstance(document.getElementById('modalAlertas'));
+  if (modal) modal.hide();
+  document.getElementById('selHoja').value = 'mantenimiento';
+  cambiarTipoMovimiento();
+  document.getElementById('inpCodigo').value = codigo;
+  manejarCodigoIngresado(codigo);
+  window.scrollTo({ top: 0, behavior: 'smooth' });
+}
+
+function abrirHistorialDesdeAlerta(codigo) {
+  const modal = bootstrap.Modal.getInstance(document.getElementById('modalAlertas'));
+  if (modal) modal.hide();
+  document.getElementById('selHoja').value = 'consulta';
+  cambiarTipoMovimiento();
+  document.getElementById('inpCodigo').value = codigo;
+  consultarArticulo();
+}
+
+function detenerAlertas() {
+  if (timerAlertas) { clearInterval(timerAlertas); timerAlertas = null; }
+}
+
+function escaparHtml(texto) {
+  const div = document.createElement('div');
+  div.textContent = (texto === null || texto === undefined) ? '' : String(texto);
+  return div.innerHTML;
+}
+
+function escaparAttr(texto) {
+  return escaparHtml(texto).replace(/"/g, '&quot;').replace(/'/g, '&#39;');
+}
+
+function hayValor(v) {
+  return v !== '' && v !== null && v !== undefined;
+}
+
+function htmlMediciones(ev) {
+  const partes = [];
+  if (hayValor(ev.voltios)) partes.push('Voltios: ' + escaparHtml(String(ev.voltios)));
+  if (hayValor(ev.amperios)) partes.push('Amperios: ' + escaparHtml(String(ev.amperios)));
+  if (hayValor(ev.ohmios)) partes.push('Ohmios: ' + escaparHtml(String(ev.ohmios)));
+  return partes.length ? '<div class="small text-muted">' + partes.join(' · ') + '</div>' : '';
+}
+
+function mostrarListaInventario(res, ubic, nom) {
+  const panel = document.getElementById('resultadoConsulta');
+  panel.classList.remove('campo-oculto');
+
+  let titulo;
+  if (nom && ubic) titulo = nom + ' en ' + ubic;
+  else if (ubic) titulo = 'Todo lo que hay en ' + ubic;
+  else titulo = nom + ' (todas las ubicaciones)';
+
+  if (!res || !res.items || res.items.length === 0) {
+    panel.innerHTML = '<div class="fw-bold fs-5 texto-acento mb-2">' + escaparHtml(titulo) + '</div>' +
+      '<div class="alert alert-warning mb-0">No hay artículos con ese filtro.</div>';
+    return;
+  }
+
+  let html = '<div class="mb-2">';
+  html += '  <div class="fw-bold fs-5 texto-acento">' + escaparHtml(titulo) + '</div>';
+  html += '  <div class="text-muted">' + res.total + ' artículo(s)' +
+          (res.truncado ? ' · mostrando los primeros ' + res.items.length : '') + '</div>';
+  html += '  <div class="small text-muted">Toca un artículo para ver su historial.</div>';
+  html += '</div>';
+
+  // Resumen: por ubicación si se filtró por artículo; por artículo si se filtró por ubicación
+  let resumen = [];
+  if (nom && !ubic) resumen = res.resumenUbicaciones || [];
+  else if (ubic && !nom) resumen = res.resumenNombres || [];
+  if (resumen.length > 0) {
+    html += '<div class="mb-3">';
+    resumen.forEach((r) => {
+      html += '<span class="chip-resumen"><strong>' + escaparHtml(r.nombre) + '</strong>: ' + r.total + '</span>';
+    });
+    html += '</div>';
+  }
+
+  res.items.forEach((it) => {
+    const img = it.imagen ? '<img data-foto="' + escaparAttr(it.imagen) + '" alt="" loading="lazy">' : '';
+    const cantidad = (it.stock !== '' && it.stock !== null && it.stock !== undefined)
+      ? ' · Cant.: ' + escaparHtml(String(it.stock)) : '';
+
+    html += '<div class="item-inv" data-codigo="' + escaparAttr(it.codigo) + '">';
+    html += '  <div class="item-info">';
+    html += '    <div class="fw-bold">' + escaparHtml(it.nombre || '(sin nombre)') + '</div>';
+    html += '    <div class="small text-muted">Código: ' + escaparHtml(it.codigo) + '</div>';
+    html += '    <div class="small"><i class="bi bi-geo-alt"></i> ' + escaparHtml(it.ubicacion || '(sin ubicación)') + cantidad + '</div>';
+    html += '    <div class="small text-muted">' + escaparHtml(it.tipoUltimo) + ' · ' + escaparHtml(it.fecha) + '</div>';
+    html += '  </div>';
+    html += img;
+    html += '</div>';
+  });
+
+  panel.innerHTML = html;
+  hidratarFotos(panel);
+  panel.querySelectorAll('.item-inv').forEach((el) => {
+    el.addEventListener('click', () => verHistorialDe(el.dataset.codigo));
+  });
+}
+
+function verHistorialDe(codigo) {
+  document.getElementById('inpCodigo').value = codigo;
+  consultarArticulo(true);
+}
+
+function volverALista() {
+  if (!ultimaListaInventario) return;
+  document.getElementById('inpCodigo').value = '';
+  mostrarListaInventario(ultimaListaInventario.res, ultimaListaInventario.ubic, ultimaListaInventario.nom);
+  document.getElementById('resultadoConsulta').scrollIntoView({ behavior: 'smooth', block: 'start' });
+}
+
+function procesarFotoEvidencia(file) {
+  if (!file) return;
+
+  mostrarLoading(true, 'Procesando foto...');
+
+  redimensionarImagen(file, 1024, 0.75)
+    .then((dataUrl) => {
+      fotoBase64 = dataUrl;
+      const preview = document.getElementById('preview-foto');
+      preview.src = dataUrl;
+      preview.style.display = 'block';
+      mostrarToast('Foto de evidencia lista', 'success');
+    })
+    .catch((err) => {
+      mostrarToast('No se pudo procesar la foto: ' + err, 'danger');
+    })
+    .finally(() => {
+      mostrarLoading(false);
+      document.getElementById('inputFoto').value = '';
+    });
+}
+
+function redimensionarImagen(file, maxAncho, calidad) {
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onerror = () => reject('No se pudo leer el archivo');
+    reader.onload = (e) => {
+      const img = new Image();
+      img.onerror = () => reject('No se pudo cargar la imagen');
+      img.onload = () => {
+        let ancho = img.width;
+        let alto = img.height;
+        if (ancho > maxAncho) {
+          alto = Math.round(alto * (maxAncho / ancho));
+          ancho = maxAncho;
+        }
+        const canvas = document.createElement('canvas');
+        canvas.width = ancho;
+        canvas.height = alto;
+        canvas.getContext('2d').drawImage(img, 0, 0, ancho, alto);
+        resolve(canvas.toDataURL('image/jpeg', calidad));
+      };
+      img.src = e.target.result;
+    };
+    reader.readAsDataURL(file);
+  });
+}
+
+function procesarFotoAmperios(file, destino) {
+  if (!file) return;
+  const esEntrada = (destino === 'entrada');
+
+  mostrarLoading(true, 'Procesando foto de amperios...');
+
+  redimensionarImagen(file, 1024, 0.75)
+    .then((dataUrl) => {
+      if (esEntrada) fotoAmpEntradaBase64 = dataUrl; else fotoAmpMantBase64 = dataUrl;
+      const preview = document.getElementById(esEntrada ? 'preview-foto-amp-entrada' : 'preview-foto-amp-mant');
+      preview.src = dataUrl;
+      preview.style.display = 'block';
+      mostrarToast('Foto de amperios lista', 'success');
+    })
+    .catch((err) => {
+      mostrarToast('No se pudo procesar la foto de amperios: ' + err, 'danger');
+    })
+    .finally(() => {
+      mostrarLoading(false);
+      document.getElementById(esEntrada ? 'inputFotoAmpEntrada' : 'inputFotoAmpMant').value = '';
+    });
+}
+
+function limpiarFotoAmperios(destino) {
+  const esEntrada = (destino === 'entrada');
+  if (esEntrada) fotoAmpEntradaBase64 = ''; else fotoAmpMantBase64 = '';
+  const preview = document.getElementById(esEntrada ? 'preview-foto-amp-entrada' : 'preview-foto-amp-mant');
+  preview.style.display = 'none';
+  preview.src = '';
+}
+
+function mostrarToast(mensaje, tipo) {
+  const toast = document.getElementById('toastMsg');
+  toast.className = 'alert toast-custom shadow alert-' + (tipo || 'info');
+  toast.innerText = mensaje;
+  toast.style.display = 'block';
+  setTimeout(() => { toast.style.display = 'none'; }, 3500);
+}
+
+function mostrarLoading(mostrar, mensaje) {
+  document.getElementById('overlay-loading-msg').innerText = mensaje || 'Procesando...';
+  document.getElementById('overlay-loading').style.display = mostrar ? 'flex' : 'none';
+}
+
+function normalizarTexto(t) {
+  return String(t === undefined || t === null ? '' : t)
+    .trim().toLowerCase()
+    .normalize('NFD').replace(/[\u0300-\u036f]/g, '');
+}
+
+function configDe(nombre) {
+  const n = normalizarTexto(nombre);
+  if (!n) return null;
+  for (let i = 0; i < CONFIG.length; i++) {
+    if (normalizarTexto(CONFIG[i].articulo) === n) return CONFIG[i];
+  }
+  return null;
+}
+
+function camposDe(nombre) {
+  const cfg = configDe(nombre);
+  return cfg ? (cfg.campos || []) : [];
+}
+
+function mostrarColumnasCampos(campos, prefijo, prefijoInput) {
+  const mapa = { voltios: 'Voltios', amperios: 'Amperios', ohmios: 'Ohmios' };
+  let alguno = false;
+  Object.keys(mapa).forEach((k) => {
+    const col = document.getElementById(prefijo + mapa[k]);
+    const inp = document.getElementById(prefijoInput + mapa[k]);
+    if (campos.indexOf(k) !== -1) {
+      col.classList.remove('campo-oculto');
+      alguno = true;
+    } else {
+      col.classList.add('campo-oculto');
+      inp.value = '';
+    }
+  });
+  return alguno;
+}
+
+function actualizarCamposEntrada() {
+  const grupo = document.getElementById('grupoEspecsEntrada');
+  if (document.getElementById('selHoja').value !== 'Inventario') {
+    grupo.classList.add('campo-oculto');
+    return;
+  }
+  const nombre = obtenerValorSeleccionado('selNombre', 'inpNombreNuevo', NUEVO_NOMBRE);
+  const campos = camposDe(nombre);
+  const alguno = mostrarColumnasCampos(campos, 'col', 'inp');
+  grupo.classList.toggle('campo-oculto', !alguno);
+  const pideAmp = campos.indexOf('amperios') !== -1;
+  document.getElementById('grupoFotoAmpEntrada').classList.toggle('campo-oculto', !pideAmp);
+  if (!pideAmp) limpiarFotoAmperios('entrada');
+  actualizarVistaBateria('entrada');
+}
+
+function valorCampoVisible(colId, inputId) {
+  if (document.getElementById(colId).classList.contains('campo-oculto')) return '';
+  return document.getElementById(inputId).value;
+}
+
+function fechaMasDias(dias) {
+  const d = new Date();
+  d.setDate(d.getDate() + dias);
+  return String(d.getDate()).padStart(2, '0') + '/' + String(d.getMonth() + 1).padStart(2, '0') + '/' + d.getFullYear();
+}
+</script>
 </body>
 </html>
