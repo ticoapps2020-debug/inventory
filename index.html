@@ -279,7 +279,7 @@ label.form-label{ font-weight:600; color:#1E293B; }
 
       <div id="vistaBateriaEntrada" class="mt-2 campo-oculto"></div>
 
-      <!-- Foto de evidencia de los amperios (aparte de la foto general) -->
+      <!-- Foto de evidencia de los amperios (aparte de la foto del código) -->
       <div class="mt-3 campo-oculto" id="grupoFotoAmpEntrada">
         <div class="form-text mt-0 mb-1"><i class="bi bi-camera"></i> Foto de evidencia de los amperios <span class="text-muted">(obligatoria si pones un valor)</span></div>
         <button type="button" class="btn btn-secondary btn-grande" onclick="document.getElementById('inputFotoAmpEntrada').click()">
@@ -288,6 +288,17 @@ label.form-label{ font-weight:600; color:#1E293B; }
         <input type="file" id="inputFotoAmpEntrada" accept="image/*" capture="environment" class="campo-oculto"
                onchange="procesarFotoAmperios(this.files[0], 'entrada')">
         <img id="preview-foto-amp-entrada" class="preview-amp" alt="Vista previa de la foto de amperios">
+      </div>
+
+      <!-- Foto de evidencia de los ohmios (aparte de la foto del código) -->
+      <div class="mt-3 campo-oculto" id="grupoFotoOhmEntrada">
+        <div class="form-text mt-0 mb-1"><i class="bi bi-camera"></i> Foto de evidencia de los ohmios <span class="text-muted">(obligatoria si pones un valor)</span></div>
+        <button type="button" class="btn btn-secondary btn-grande" onclick="document.getElementById('inputFotoOhmEntrada').click()">
+          <i class="bi bi-camera-fill"></i> Tomar foto de ohmios
+        </button>
+        <input type="file" id="inputFotoOhmEntrada" accept="image/*" capture="environment" class="campo-oculto"
+               onchange="procesarFotoOhmios(this.files[0], 'entrada')">
+        <img id="preview-foto-ohm-entrada" class="preview-amp" alt="Vista previa de la foto de ohmios">
       </div>
     </div>
 
@@ -347,7 +358,7 @@ label.form-label{ font-weight:600; color:#1E293B; }
 
       <div id="vistaBateriaMant" class="mt-2 campo-oculto"></div>
 
-      <!-- Foto de evidencia de los amperios (aparte de la foto general) -->
+      <!-- Foto de evidencia de los amperios (aparte de la foto del código) -->
       <div class="mt-3 campo-oculto" id="grupoFotoAmpMant">
         <div class="form-text mt-0 mb-1"><i class="bi bi-camera"></i> Foto de evidencia de los amperios <span class="text-muted">(obligatoria si pones un valor)</span></div>
         <button type="button" class="btn btn-secondary btn-grande" onclick="document.getElementById('inputFotoAmpMant').click()">
@@ -356,6 +367,17 @@ label.form-label{ font-weight:600; color:#1E293B; }
         <input type="file" id="inputFotoAmpMant" accept="image/*" capture="environment" class="campo-oculto"
                onchange="procesarFotoAmperios(this.files[0], 'mant')">
         <img id="preview-foto-amp-mant" class="preview-amp" alt="Vista previa de la foto de amperios">
+      </div>
+
+      <!-- Foto de evidencia de los ohmios (aparte de la foto del código) -->
+      <div class="mt-3 campo-oculto" id="grupoFotoOhmMant">
+        <div class="form-text mt-0 mb-1"><i class="bi bi-camera"></i> Foto de evidencia de los ohmios <span class="text-muted">(obligatoria si pones un valor)</span></div>
+        <button type="button" class="btn btn-secondary btn-grande" onclick="document.getElementById('inputFotoOhmMant').click()">
+          <i class="bi bi-camera-fill"></i> Tomar foto de ohmios
+        </button>
+        <input type="file" id="inputFotoOhmMant" accept="image/*" capture="environment" class="campo-oculto"
+               onchange="procesarFotoOhmios(this.files[0], 'mant')">
+        <img id="preview-foto-ohm-mant" class="preview-amp" alt="Vista previa de la foto de ohmios">
       </div>
     </div>
 
@@ -399,15 +421,15 @@ label.form-label{ font-weight:600; color:#1E293B; }
       <input type="text" id="inpFecha" class="form-control" disabled placeholder="Se registra automáticamente">
     </div>
 
-    <!-- Foto de evidencia: Entrada, Traslado/Salida y Mantenimiento -->
+    <!-- Foto del código del artículo: Entrada, Traslado/Salida y Mantenimiento -->
     <div class="mb-3" id="grupoFoto">
-      <label class="form-label"><i class="bi bi-camera"></i> Foto de evidencia</label>
+      <label class="form-label"><i class="bi bi-camera"></i> Foto del código del Artículo</label>
       <button type="button" class="btn btn-secondary btn-grande" onclick="document.getElementById('inputFoto').click()">
         <i class="bi bi-camera-fill"></i> Tomar Foto
       </button>
       <input type="file" id="inputFoto" accept="image/*" capture="environment" class="campo-oculto"
              onchange="procesarFotoEvidencia(this.files[0])">
-      <img id="preview-foto" alt="Vista previa de la foto de evidencia">
+      <img id="preview-foto" alt="Vista previa de la foto del código del artículo">
     </div>
 
     <!-- Botón Guardar: Entrada, Traslado/Salida y Mantenimiento -->
@@ -882,6 +904,8 @@ let CONFIG = [];            // [{articulo, dias, aviso, campos:[...], sinAlerta:
 let MANT_ACTUAL = null;     // equipo identificado en Mantenimiento {codigo, nombre, ubicacion}
 let fotoAmpEntradaBase64 = '';
 let fotoAmpMantBase64 = '';
+let fotoOhmEntradaBase64 = '';
+let fotoOhmMantBase64 = '';
 
 let ALERTAS = { items: [], rojos: 0, amarillos: 0, sinBase: 0 };
 let timerAlertas = null;
@@ -1217,13 +1241,14 @@ function limpiarInfoMantenimiento() {
   $('infoMantenimiento').innerHTML = '';
   $('grupoMantInfo').classList.add('campo-oculto');
   mostrarColumnasCampos([], 'colMant', 'inpMant');
-  ['grupoMantMediciones', 'grupoMantGabinete', 'grupoFotoAmpMant', 'colMantTemperatura',
+  ['grupoMantMediciones', 'grupoMantGabinete', 'grupoFotoAmpMant', 'grupoFotoOhmMant', 'colMantTemperatura',
    'colMantEstadoFisico', 'colMantLimpieza', 'vistaBateriaMant'].forEach((id) => $(id).classList.add('campo-oculto'));
   $('inpMantTemperatura').value = '';
   $('selMantEstadoFisico').selectedIndex = 0;
   $('selMantLimpieza').selectedIndex = 0;
   $('vistaBateriaMant').innerHTML = '';
   limpiarFotoAmperios('mant');
+  limpiarFotoOhmios('mant');
   $('inpMantProximo').value = '';
 }
 
@@ -1244,6 +1269,9 @@ function prepararCamposMantenimiento(nombre) {
   $('grupoFotoAmpMant').classList.toggle('campo-oculto', !hay('amperios'));
   if (!hay('amperios')) limpiarFotoAmperios('mant');
 
+  $('grupoFotoOhmMant').classList.toggle('campo-oculto', !hay('ohmios'));
+  if (!hay('ohmios')) limpiarFotoOhmios('mant');
+
   const cfg = configDe(nombre);
   $('inpMantProximo').value = (cfg && cfg.dias > 0)
     ? fechaMasDias(cfg.dias) + ' (en ' + cfg.dias + ' días)'
@@ -1258,7 +1286,7 @@ function guardarMantenimiento() {
     mostrarToast('Escribe o escanea un código registrado y espera a que se identifique el equipo.', 'warning');
     return;
   }
-  if (!fotoBase64) { mostrarToast('Debes tomar una foto de evidencia', 'warning'); return; }
+  if (!fotoBase64) { mostrarToast('Debes tomar la foto del código del Artículo', 'warning'); return; }
 
   const visible = (id) => !$(id).classList.contains('campo-oculto');
   const datos = {
@@ -1277,6 +1305,8 @@ function guardarMantenimiento() {
   if (visible('colMantLimpieza') && !datos.limpieza) { mostrarToast('Indica si se hizo la limpieza', 'warning'); return; }
   if (datos.amperios !== '' && !fotoAmpMantBase64) { mostrarToast('Debes tomar la foto de evidencia de los amperios', 'warning'); return; }
   if (fotoAmpMantBase64) datos.imagenAmperiosBase64 = fotoAmpMantBase64;
+  if (datos.ohmios !== '' && !fotoOhmMantBase64) { mostrarToast('Debes tomar la foto de evidencia de los ohmios', 'warning'); return; }
+  if (fotoOhmMantBase64) datos.imagenOhmiosBase64 = fotoOhmMantBase64;
 
   mostrarLoading(true, 'Guardando mantenimiento...');
   API.registrarMantenimiento(datos)
@@ -1395,9 +1425,10 @@ function htmlMiniaturaHistorial(valor, etiqueta) {
 }
 
 function htmlFotosHistorial(ev) {
-  const a = htmlMiniaturaHistorial(ev.imagen, 'Evidencia');
+  const a = htmlMiniaturaHistorial(ev.imagen, 'Código');
   const b = htmlMiniaturaHistorial(ev.imagenAmperios, 'Amperios');
-  return (a || b) ? '<div class="mt-2 d-flex gap-2 flex-wrap">' + a + b + '</div>' : '';
+  const c = htmlMiniaturaHistorial(ev.imagenOhmios, 'Ohmios');
+  return (a || b || c) ? '<div class="mt-2 d-flex gap-2 flex-wrap">' + a + b + c + '</div>' : '';
 }
 
 // =============================================================
@@ -1550,7 +1581,7 @@ function guardarRegistro() {
       : 'Debes seleccionar o escribir un Nombre de artículo', 'warning');
     return;
   }
-  if (!fotoBase64) { mostrarToast('Debes tomar una foto de evidencia', 'warning'); return; }
+  if (!fotoBase64) { mostrarToast('Debes tomar la foto del código del Artículo', 'warning'); return; }
 
   const datos = { hoja: hoja, codigo: codigo, nombre: nombre, imagenBase64: fotoBase64 };
 
@@ -1567,6 +1598,11 @@ function guardarRegistro() {
       return;
     }
     if (fotoAmpEntradaBase64) datos.imagenAmperiosBase64 = fotoAmpEntradaBase64;
+    if (datos.ohmios !== '' && !fotoOhmEntradaBase64) {
+      mostrarToast('Debes tomar la foto de evidencia de los ohmios', 'warning');
+      return;
+    }
+    if (fotoOhmEntradaBase64) datos.imagenOhmiosBase64 = fotoOhmEntradaBase64;
   } else if (hoja === 'salidas') {
     const origen = $('inpOrigen').value.trim();
     const destino = obtenerValorSeleccionado('selDestino', 'inpDestinoNuevo', NUEVO_DESTINO);
@@ -1613,6 +1649,7 @@ function limpiarFormulario() {
   fotoBase64 = '';
   ocultarAvisoDuplicado();
   limpiarFotoAmperios('entrada');
+  limpiarFotoOhmios('entrada');
   limpiarInfoMantenimiento();
   actualizarCamposEntrada();
 }
@@ -2185,7 +2222,7 @@ function procesarFotoEvidencia(file) {
       const preview = document.getElementById('preview-foto');
       preview.src = dataUrl;
       preview.style.display = 'block';
-      mostrarToast('Foto de evidencia lista', 'success');
+      mostrarToast('Foto del código del Artículo lista', 'success');
     })
     .catch((err) => {
       mostrarToast('No se pudo procesar la foto: ' + err, 'danger');
@@ -2253,6 +2290,38 @@ function limpiarFotoAmperios(destino) {
   preview.src = '';
 }
 
+// Foto de evidencia de los ohmios. destino: 'entrada' | 'mant'
+function procesarFotoOhmios(file, destino) {
+  if (!file) return;
+  const esEntrada = (destino === 'entrada');
+
+  mostrarLoading(true, 'Procesando foto de ohmios...');
+
+  redimensionarImagen(file, 1024, 0.75)
+    .then((dataUrl) => {
+      if (esEntrada) fotoOhmEntradaBase64 = dataUrl; else fotoOhmMantBase64 = dataUrl;
+      const preview = document.getElementById(esEntrada ? 'preview-foto-ohm-entrada' : 'preview-foto-ohm-mant');
+      preview.src = dataUrl;
+      preview.style.display = 'block';
+      mostrarToast('Foto de ohmios lista', 'success');
+    })
+    .catch((err) => {
+      mostrarToast('No se pudo procesar la foto de ohmios: ' + err, 'danger');
+    })
+    .finally(() => {
+      mostrarLoading(false);
+      document.getElementById(esEntrada ? 'inputFotoOhmEntrada' : 'inputFotoOhmMant').value = '';
+    });
+}
+
+function limpiarFotoOhmios(destino) {
+  const esEntrada = (destino === 'entrada');
+  if (esEntrada) fotoOhmEntradaBase64 = ''; else fotoOhmMantBase64 = '';
+  const preview = document.getElementById(esEntrada ? 'preview-foto-ohm-entrada' : 'preview-foto-ohm-mant');
+  preview.style.display = 'none';
+  preview.src = '';
+}
+
 function mostrarToast(mensaje, tipo) {
   const toast = document.getElementById('toastMsg');
   toast.className = 'alert toast-custom shadow alert-' + (tipo || 'info');
@@ -2316,6 +2385,9 @@ function actualizarCamposEntrada() {
   const pideAmp = campos.indexOf('amperios') !== -1;
   document.getElementById('grupoFotoAmpEntrada').classList.toggle('campo-oculto', !pideAmp);
   if (!pideAmp) limpiarFotoAmperios('entrada');
+  const pideOhm = campos.indexOf('ohmios') !== -1;
+  document.getElementById('grupoFotoOhmEntrada').classList.toggle('campo-oculto', !pideOhm);
+  if (!pideOhm) limpiarFotoOhmios('entrada');
   actualizarVistaBateria('entrada');
 }
 
