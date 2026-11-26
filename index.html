@@ -122,6 +122,15 @@ label.form-label{ font-weight:600; color:#1E293B; }
 /* Menú de administración y modales */
 #menuAdmin .dropdown-item{ padding:10px 16px; }
 .modal-body .form-label.small{ color:#475569; }
+
+/* Escáner en vivo */
+#escanerOverlay{ position:fixed; inset:0; background:#000; z-index:2500; display:flex; flex-direction:column; }
+#escanerVideo{ position:absolute; inset:0; width:100%; height:100%; object-fit:cover; }
+#escanerHtml5{ position:absolute; inset:0; width:100%; height:100%; overflow:hidden; }
+.escaner-marco{ position:absolute; left:6%; right:6%; top:28%; height:28%; border:3px solid rgba(255,255,255,.95); border-radius:14px; box-shadow:0 0 0 9999px rgba(0,0,0,.4); pointer-events:none; }
+.escaner-barra{ position:absolute; left:0; right:0; bottom:0; padding:16px 14px 24px; background:linear-gradient(transparent, rgba(0,0,0,.8)); }
+.escaner-texto{ color:#fff; text-align:center; margin-bottom:12px; font-weight:600; }
+.escaner-botones{ display:flex; gap:8px; justify-content:center; flex-wrap:wrap; }
 </style>
 </head>
 <body>
@@ -198,7 +207,7 @@ label.form-label{ font-weight:600; color:#1E293B; }
       <div class="input-group">
         <input type="text" id="inpCodigo" class="form-control" placeholder="Escanea o escribe el código" autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false"
                onchange="manejarCodigoIngresado(this.value)">
-        <button class="btn btn-primary" type="button" onclick="document.getElementById('inputScanner').click()">
+        <button class="btn btn-primary" type="button" onclick="abrirEscaner()" aria-label="Escanear código">
           <i class="bi bi-camera-fill"></i>
         </button>
       </div>
@@ -456,6 +465,21 @@ label.form-label{ font-weight:600; color:#1E293B; }
         <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Cerrar"></button>
       </div>
       <div class="modal-body" id="cuerpoAlertas"></div>
+    </div>
+  </div>
+</div>
+
+<!-- ============ ESCÁNER EN VIVO ============ -->
+<div id="escanerOverlay" class="campo-oculto">
+  <video id="escanerVideo" playsinline muted></video>
+  <div id="escanerHtml5" class="campo-oculto"></div>
+  <div class="escaner-marco"></div>
+  <div class="escaner-barra">
+    <div id="escanerEstado" class="escaner-texto">Iniciando cámara...</div>
+    <div class="escaner-botones">
+      <button type="button" class="btn btn-light campo-oculto" id="btnLinterna" onclick="alternarLinterna()"><i class="bi bi-lightning-charge-fill"></i> Linterna</button>
+      <button type="button" class="btn btn-light" onclick="cerrarEscaner(); usarFotoParaCodigo();"><i class="bi bi-camera"></i> Usar foto</button>
+      <button type="button" class="btn btn-danger" onclick="cerrarEscaner()"><i class="bi bi-x-lg"></i> Cancelar</button>
     </div>
   </div>
 </div>
@@ -2028,6 +2052,156 @@ async function decodificarConReintento(file) {
     return await scanner.scanFile(archivo2, false);
   }
 }
+
+// =============================================================
+// ESCÁNER EN VIVO (cámara continua, sin tomar foto)
+//   1) BarcodeDetector nativo: en Chrome de Android usa el motor de Google
+//      (el mismo de las apps de escaneo), con enfoque continuo y linterna.
+//   2) html5-qrcode en vivo, si el navegador no tiene el nativo (p. ej. iPhone).
+//   3) Foto del código (método anterior), si no hay cámara en vivo o no hay permiso.
+// Una lectura se acepta cuando el mismo valor sale 2 veces seguidas (evita errores).
+// =============================================================
+const ESCANER = { activo: false, stream: null, track: null, timer: null, ocupado: false, html5: null, ultimo: '', repeticiones: 0, torch: false };
+const FORMATOS_NATIVOS = ['qr_code', 'code_128', 'code_39', 'code_93', 'ean_13', 'ean_8', 'upc_a', 'upc_e', 'itf', 'codabar', 'data_matrix', 'pdf417', 'aztec'];
+
+function usarFotoParaCodigo() { document.getElementById('inputScanner').click(); }
+
+function abrirEscaner() {
+  if (ESCANER.activo) return;
+  if (!(navigator.mediaDevices && navigator.mediaDevices.getUserMedia)) { usarFotoParaCodigo(); return; }
+
+  ESCANER.activo = true;
+  ESCANER.ultimo = '';
+  ESCANER.repeticiones = 0;
+  $('escanerOverlay').classList.remove('campo-oculto');
+  $('escanerEstado').textContent = 'Iniciando cámara...';
+  $('btnLinterna').classList.add('campo-oculto');
+
+  if ('BarcodeDetector' in window) iniciarEscanerNativo().catch(errorEscaner);
+  else if (window.Html5Qrcode && typeof Html5Qrcode.prototype.start === 'function') iniciarEscanerHtml5().catch(errorEscaner);
+  else { cerrarEscaner(); usarFotoParaCodigo(); }
+}
+
+function errorEscaner(err) {
+  const nombre = (err && err.name) ? err.name : '';
+  cerrarEscaner();
+  if (nombre === 'NotAllowedError' || nombre === 'SecurityError') {
+    mostrarToast('No hay permiso para usar la cámara. Actívalo en los ajustes del navegador o usa la foto.', 'warning');
+  } else {
+    mostrarToast('No se pudo abrir la cámara en vivo. Puedes tomar una foto del código.', 'warning');
+  }
+}
+
+async function iniciarEscanerNativo() {
+  let formatos = FORMATOS_NATIVOS;
+  try {
+    const soportados = await BarcodeDetector.getSupportedFormats();
+    formatos = FORMATOS_NATIVOS.filter((f) => soportados.indexOf(f) !== -1);
+  } catch (e) {}
+  const detector = new BarcodeDetector(formatos.length ? { formats: formatos } : undefined);
+
+  const stream = await navigator.mediaDevices.getUserMedia({
+    audio: false,
+    video: { facingMode: { ideal: 'environment' }, width: { ideal: 1920 }, height: { ideal: 1080 } }
+  });
+  if (!ESCANER.activo) { stream.getTracks().forEach((t) => t.stop()); return; } // lo cerraron mientras pedía permiso
+
+  ESCANER.stream = stream;
+  const video = $('escanerVideo');
+  video.srcObject = stream;
+  await video.play();
+  prepararControlesCamara(stream.getVideoTracks()[0]);
+  $('escanerEstado').textContent = 'Apunta al código…';
+
+  ESCANER.timer = setInterval(async () => {
+    if (!ESCANER.activo || ESCANER.ocupado || video.readyState < 2) return;
+    ESCANER.ocupado = true;
+    try {
+      const codigos = await detector.detect(video);
+      if (codigos && codigos.length) confirmarLectura(codigos[0].rawValue);
+    } catch (e) {}
+    ESCANER.ocupado = false;
+  }, 120);
+}
+
+async function iniciarEscanerHtml5() {
+  $('escanerVideo').classList.add('campo-oculto');
+  $('escanerHtml5').classList.remove('campo-oculto');
+  const F = Html5QrcodeSupportedFormats;
+  ESCANER.html5 = new Html5Qrcode('escanerHtml5', {
+    formatsToSupport: [F.QR_CODE, F.CODE_128, F.CODE_39, F.EAN_13, F.EAN_8, F.UPC_A, F.UPC_E, F.ITF, F.CODABAR, F.DATA_MATRIX],
+    verbose: false
+  });
+  await ESCANER.html5.start(
+    { facingMode: 'environment' },
+    { fps: 12, qrbox: (w, h) => ({ width: Math.floor(w * 0.88), height: Math.floor(h * 0.4) }) },
+    (texto) => confirmarLectura(texto),
+    () => {}
+  );
+  if (!ESCANER.activo) { cerrarEscaner(); return; }
+  $('escanerEstado').textContent = 'Apunta al código…';
+}
+
+// Enfoque continuo y linterna (si la cámara los ofrece)
+function prepararControlesCamara(track) {
+  let caps = {};
+  try { caps = track.getCapabilities ? track.getCapabilities() : {}; } catch (e) {}
+  if (caps.focusMode && caps.focusMode.indexOf('continuous') !== -1) {
+    track.applyConstraints({ advanced: [{ focusMode: 'continuous' }] }).catch(() => {});
+  }
+  if (caps.torch) {
+    ESCANER.track = track;
+    $('btnLinterna').classList.remove('campo-oculto');
+  }
+}
+
+function alternarLinterna() {
+  if (!ESCANER.track) return;
+  ESCANER.torch = !ESCANER.torch;
+  ESCANER.track.applyConstraints({ advanced: [{ torch: ESCANER.torch }] }).catch(() => {});
+  $('btnLinterna').classList.toggle('btn-warning', ESCANER.torch);
+  $('btnLinterna').classList.toggle('btn-light', !ESCANER.torch);
+}
+
+function confirmarLectura(valor) {
+  valor = String(valor || '').trim();
+  if (!valor || !ESCANER.activo) return;
+  if (valor === ESCANER.ultimo) ESCANER.repeticiones++;
+  else { ESCANER.ultimo = valor; ESCANER.repeticiones = 1; }
+  if (ESCANER.repeticiones >= 2) aceptarCodigoEscaneado(valor);
+}
+
+function aceptarCodigoEscaneado(valor) {
+  cerrarEscaner();
+  if (navigator.vibrate) navigator.vibrate(60);
+  $('inpCodigo').value = valor;
+  mostrarToast('Código detectado: ' + valor, 'success');
+  manejarCodigoIngresado(valor);
+}
+
+function cerrarEscaner() {
+  ESCANER.activo = false;
+  ESCANER.ocupado = false;
+  if (ESCANER.timer) { clearInterval(ESCANER.timer); ESCANER.timer = null; }
+  if (ESCANER.stream) { ESCANER.stream.getTracks().forEach((t) => t.stop()); ESCANER.stream = null; }
+  ESCANER.track = null;
+  ESCANER.torch = false;
+  $('btnLinterna').classList.remove('btn-warning');
+  $('btnLinterna').classList.add('btn-light');
+  const video = $('escanerVideo');
+  video.srcObject = null;
+  video.classList.remove('campo-oculto');
+  if (ESCANER.html5) {
+    const h = ESCANER.html5;
+    ESCANER.html5 = null;
+    Promise.resolve().then(() => h.stop()).catch(() => {}).then(() => { try { h.clear(); } catch (e) {} });
+  }
+  $('escanerHtml5').classList.add('campo-oculto');
+  $('escanerHtml5').innerHTML = '';
+  $('escanerOverlay').classList.add('campo-oculto');
+}
+
+document.addEventListener('visibilitychange', () => { if (document.hidden && ESCANER.activo) cerrarEscaner(); });
 
 async function procesarFotoCodigo(file) {
   if (!file) return;
